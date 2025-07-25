@@ -1,7 +1,7 @@
 // src/main.js
 
 var structureLitematic;
-var highlightedBlockName = null;
+var highlightedBlockNames = new Set();
 
 function resetAppView() {
     document.getElementById('controls-panel').classList.add('hidden');
@@ -9,7 +9,42 @@ function resetAppView() {
     document.getElementById('file-panel').style.display = 'block';
     document.getElementById('command-panel').style.display = 'block';
     document.getElementById('viewer-overlay').style.display = 'flex';
-    
+
+    // Hide schematic name display
+    const schematicNameDisplay = document.getElementById('schematic-name-display');
+    if (schematicNameDisplay) {
+        schematicNameDisplay.classList.add('hidden');
+        schematicNameDisplay.textContent = '';
+    }
+
+    // Hide or clear block info panel
+    const blockInfoPanel = document.getElementById('block-info-panel');
+    if (blockInfoPanel) {
+        blockInfoPanel.classList.add('hidden');
+        blockInfoPanel.textContent = '';
+    }
+
+    // Hide or clear materials list
+    const materialsList = document.getElementById('materials-list');
+    if (materialsList) {
+        materialsList.innerHTML = '';
+        materialsList.classList.add('hidden');
+    }
+
+    // Hide total blocks info
+    const totalBlocksInfo = document.getElementById('total-blocks-info');
+    if (totalBlocksInfo) {
+        totalBlocksInfo.textContent = '';
+        totalBlocksInfo.classList.add('hidden');
+    }
+
+    // Hide block coordinates display (if exists)
+    const blockCoords = document.getElementById('block-coords');
+    if (blockCoords) {
+        blockCoords.textContent = '';
+        blockCoords.classList.add('hidden');
+    }
+
     // Cleanly stop the render loop and remove the canvas
     stopRendering();
     const viewer = document.getElementById('viewer');
@@ -33,13 +68,14 @@ function renderFilteredStructure() {
     const y_min = parseInt(document.getElementById('miny-slider').value);
     const y_max = parseInt(document.getElementById('maxy-slider').value);
     
-    if (y_min > y_max) {
+    if (y_min > y_max || y_max === 0) {
         setStructure(new deepslate.Structure([0,0,0]), false);
         document.getElementById('total-blocks-info').textContent = `Visible Blocks: 0`;
         return;
     }
 
-    const { structure, blockCount } = structureFromLitematic(structureLitematic, y_min, y_max + 1, highlightedBlockName);
+    const highlightFilter = highlightedBlockNames.size > 0 ? Array.from(highlightedBlockNames) : null;
+    const { structure, blockCount } = structureFromLitematic(structureLitematic, y_min, y_max, highlightFilter);
     setStructure(structure, false);
     document.getElementById('total-blocks-info').textContent = `Visible Blocks: ${blockCount}`;
 }
@@ -72,7 +108,7 @@ function processLoadedLitematic(litematic, schematicName) {
         document.getElementById('controls-panel').classList.remove('hidden');
 
         structureLitematic = litematic;
-        highlightedBlockName = null;
+        highlightedBlockNames.clear();
         updateSchematicName(schematicName);
         
         createRenderCanvas();
@@ -105,6 +141,8 @@ function loadAndProcessFile(file) {
       try {
          const nbtdata = deepslate.readNbt(new Uint8Array(reader.result));
          const litematic = readLitematicFromNBTData(nbtdata);
+         litematic.originalNBT = nbtdata;
+         litematic.originalBuffer = new Uint8Array(reader.result);
          processLoadedLitematic(litematic, file.name);
       } catch (error) {
          console.error('Error processing file:', error);
@@ -122,10 +160,14 @@ function createMaterialsList(blockCounts) {
       const item = document.createElement('div');
       item.className = 'flex justify-between items-center p-2 bg-gray-800 rounded text-sm cursor-pointer hover:bg-gray-700';
       item.innerHTML = `<span class="text-gray-300">${blockName.replace('minecraft:', '')}</span><span class="text-white font-semibold">${count}</span>`;
-      if (blockName === highlightedBlockName) item.classList.add('bg-blue-800');
+      if (highlightedBlockNames.has(blockName)) item.classList.add('bg-blue-800');
       
       item.addEventListener('click', () => {
-          highlightedBlockName = (highlightedBlockName === blockName) ? null : blockName;
+          if (highlightedBlockNames.has(blockName)) {
+              highlightedBlockNames.delete(blockName);
+          } else {
+              highlightedBlockNames.add(blockName);
+          }
           createMaterialsList(blockCounts);
           renderFilteredStructure();
       });
@@ -157,6 +199,10 @@ function downloadMaterialsCSV(blockCounts) {
     URL.revokeObjectURL(url);
 }
 
+function exportCurrentView() {
+    exportLitematicView();
+}
+
 function createRangeSliders(max_y) {
    const layerControls = document.getElementById('layer-controls');
    layerControls.classList.remove('hidden');
@@ -164,6 +210,7 @@ function createRangeSliders(max_y) {
    const minValue = document.getElementById('miny-value'), maxValue = document.getElementById('maxy-value');
    
    const sliderMax = max_y > 0 ? max_y - 1 : 0;
+   minSlider.min = 0;
    minSlider.max = sliderMax;
    maxSlider.max = sliderMax;
    minSlider.value = 0; 

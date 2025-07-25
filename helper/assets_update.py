@@ -2,14 +2,19 @@
  
 import requests
 import json
+import os
 
 
-ASSETS_FILE_PATH  = "../resource/assets.js"
-ATLAS_FILE_PATH   = "../resource/atlas.png"
+ASSETS_FILE_PATH  = os.path.abspath(os.path.join(os.path.dirname(__file__), '../resource/assets.js'))
+ATLAS_FILE_PATH   = os.path.abspath(os.path.join(os.path.dirname(__file__), '../resource/atlas.png'))
 BLOCK_DEF_URL     = "https://raw.githubusercontent.com/misode/mcmeta/summary/assets/block_definition/data.min.json"
 MODELS_URL        = "https://raw.githubusercontent.com/misode/mcmeta/summary/assets/model/data.min.json"
 ATLAS_MAPPING_URL = "https://raw.githubusercontent.com/misode/mcmeta/atlas/all/data.min.json"
 ATLAS_IMAGE_URL   = "https://raw.githubusercontent.com/misode/mcmeta/atlas/all/atlas.png"
+
+# Ensure the resource directory exists
+os.makedirs(os.path.dirname(ASSETS_FILE_PATH), exist_ok=True)
+os.makedirs(os.path.dirname(ATLAS_FILE_PATH), exist_ok=True) 
 
 result = dict()
 

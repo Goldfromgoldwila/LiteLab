@@ -3,14 +3,15 @@
    <head>
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
-      <title>Litematic Viewer</title>
+      <title>LiteLabs</title>
 
       <!-- Libraries -->
       <script src="https://unpkg.com/deepslate@0.10.1"></script>
       <script src="https://unpkg.com/gl-matrix@3.4.3/gl-matrix-min.js"></script>
       <script src="https://unpkg.com/prismarine-nbt@2.2.0/dist/index.js"></script>
+      <script src="https://unpkg.com/pako@2.1.0/dist/pako.min.js"></script>
       <script src="https://cdn.tailwindcss.com"></script>
-      <script src="https://kit.fontawesome.com/92330e144e.js" crossorigin="anonymous"></script>
+      <!-- Font Awesome script removed -->
 
       <!-- Resources -->
       <script src="resource/assets.js"></script>
@@ -35,24 +36,18 @@
       <!-- App Scripts -->
       <script src="src/deepslate-helpers.js"></script>
       <script src="src/litematic-utils.js"></script>
-      <!-- Removed ai-generator.js -->
       <script src="src/main.js"></script>
       <script src="src/settings.js"></script>
       <script src="src/viewer.js"></script>
+      <script src="src/block-hover.js"></script>
+      <script src="src/compass.js"></script>
       <script src="src/command-loader.js"></script>
       <script src="src/command-parser.js"></script>
       <script src="src/command-generator.js"></script>
       <script src="src/transformations.js"></script>
       <script src="src/exporter.js"></script>
 
-      <!-- Google Tag (gtag.js) -->
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-C0DVDW0WXS"></script>
-      <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-C0DVDW0WXS');
-      </script>
+      <!-- Google Analytics script removed -->
 
       <style>
          body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%); color: #e2e8f0; margin: 0; padding: 0; overflow-x: hidden; }
@@ -64,8 +59,17 @@
          .notification.error { background-color: #dc3545; }
          .notification.info { background-color: #17a2b8; }
          #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid white;
+            position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; 
             transform: translate(-50%, -50%); pointer-events: none; display: none; z-index: 100;
+         }
+         #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background-color: white;
+         }
+         #crosshair::before {
+            width: 16px; height: 2px; top: 7px; left: 0;
+         }
+         #crosshair::after {
+            width: 2px; height: 16px; top: 0; left: 7px;
          }
       </style>
    </head>
@@ -75,11 +79,12 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                <div class="flex justify-between items-center h-16">
                   <div class="flex items-center">
-                     <h1 class="text-2xl font-bold text-white"><i class="fas fa-cube text-minecraft-green mr-2"></i>Litematic Viewer</h1>
+                     <h1 class="text-2xl font-bold text-white">LiteLabs</h1>
                   </div>
                   <div class="flex items-center space-x-4">
-                     <button id="settings-button" class="p-2 rounded-lg hover:bg-gray-800 transition-colors"><i class="fas fa-cog text-xl"></i></button>
-                     <button id="fullscreen-btn" class="p-2 rounded-lg hover:bg-gray-800 transition-colors"><i class="fas fa-expand text-xl"></i></button>
+                     <button id="load-new-btn" class="p-2 rounded-lg hover:bg-gray-800 transition-colors" title="Load new litematic file">Load New</button>
+                     <button id="settings-button" class="p-2 rounded-lg hover:bg-gray-800 transition-colors" title="Open settings panel">Settings</button>
+                     <button id="fullscreen-btn" class="p-2 rounded-lg hover:bg-gray-800 transition-colors" title="Toggle fullscreen mode">Fullscreen</button>
                   </div>
                </div>
             </div>
@@ -88,12 +93,11 @@
          <div class="flex h-screen">
             <div id="left-panel" class="w-1/2 bg-gray-900 border-r border-gray-800 overflow-y-auto">
                <div id="file-panel" class="p-6 border-b border-gray-800">
-                  <h2 class="text-xl font-semibold mb-4 flex items-center"><i class="fas fa-file-upload text-blue-500 mr-2"></i>Load Schematic File</h2>
+                  <h2 class="text-xl font-semibold mb-4 flex items-center">Load Schematic File</h2>
                   <div id="file-loader-panel" class="space-y-4">
                      <input id="file-upload" type="file" onchange="readFileInput(this)" hidden multiple />
                      <label for="file-upload" id="drop-zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" class="block">
                         <div class="glass-effect p-8 text-center cursor-pointer hover:bg-opacity-30 transition-all border-2 border-dashed border-gray-600 hover:border-minecraft-green">
-                           <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
                            <h3 class="text-lg font-semibold mb-2">Drop files here or click to browse</h3>
                            <p class="text-gray-400">Support for .litematic files</p>
                         </div>
@@ -101,25 +105,23 @@
                   </div>
                </div>
                <div id="command-panel" class="p-6 border-b border-gray-800">
-                  <h2 class="text-xl font-semibold mb-4 flex items-center"><i class="fas fa-terminal text-yellow-500 mr-2"></i>Load from Commands</h2>
+                  <h2 class="text-xl font-semibold mb-4 flex items-center">Load from Commands</h2>
                   <div class="space-y-4">
                      <textarea id="command-data-input" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:border-minecraft-green resize-y" rows="6" placeholder="Paste a list of /setblock commands here..."></textarea>
-                     <button id="command-data-load-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center"><i class="fas fa-cogs mr-2"></i>Load Commands</button>
+                     <button id="command-data-load-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center" title="Parse and load setblock commands">Load Commands</button>
                   </div>
                </div>
-               <!-- FIX: The entire controls panel was missing. It has been restored. -->
                <div id="controls-panel" class="p-6 hidden">
                   <div class="flex items-center justify-between mb-4">
-                     <h2 class="text-xl font-semibold flex items-center"><i class="fas fa-sliders-h text-purple-500 mr-2"></i>View Controls</h2>
-                     <button id="load-new-btn" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"><i class="fas fa-plus mr-1"></i>Load New</button>
+                     <h2 class="text-xl font-semibold flex items-center">View Controls</h2>
                   </div>
                   <h3 id="schematic-name-display" class="text-lg font-semibold text-gray-300 mb-4 truncate hidden"></h3>
                   <div class="mb-4 p-4 bg-gray-800 rounded-lg">
                      <h4 class="text-md font-semibold mb-3">Transformations</h4>
                      <div class="grid grid-cols-3 gap-2">
-                        <button id="rotate-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded"><i class="fas fa-sync-alt mr-1"></i>Rotate Y</button>
-                        <button id="flip-x-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded"><i class="fas fa-arrows-alt-h mr-1"></i>Flip X</button>
-                        <button id="flip-z-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded"><i class="fas fa-arrows-alt-v mr-1"></i>Flip Z</button>
+                        <button id="rotate-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded" title="Rotate structure 90° around Y axis">Rotate Y</button>
+                        <button id="flip-x-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded" title="Mirror structure along X axis">Flip X</button>
+                        <button id="flip-z-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded" title="Mirror structure along Z axis">Flip Z</button>
                      </div>
                   </div>
                   <div id="layer-controls" class="space-y-4 hidden">
@@ -138,12 +140,12 @@
                      </div>
                      <div id="material-list-container">
                         <div id="material-list" class="max-h-60 overflow-y-auto space-y-1"></div>
-                        <button id="download-csv-btn" class="mt-2 w-full px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors"><i class="fas fa-download mr-1"></i>Download CSV</button>
+                        <button id="download-csv-btn" class="mt-2 w-full px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors" title="Export material list as CSV file">Download CSV</button>
                      </div>
                      <div id="command-output-section" class="mt-4 hidden">
                         <div class="flex items-center justify-between mb-2">
                            <h3 class="text-sm font-medium text-gray-300">Setblock Commands</h3>
-                           <button id="copy-commands-btn" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" title="Copy All Commands"><i class="fas fa-terminal mr-1"></i>Copy All</button>
+                           <button id="copy-commands-btn" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" title="Copy all setblock commands to clipboard">Copy All</button>
                         </div>
                         <div class="grid grid-cols-3 gap-2 mb-2">
                            <input type="text" id="origin-x" placeholder="X" value="0" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-center text-sm">
@@ -155,8 +157,8 @@
                      <div class="mt-4">
                         <h4 class="text-sm font-semibold mb-2">Export Schematic</h4>
                         <div class="flex space-x-2">
-                           <button id="export-schem-btn" class="flex-1 px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors"><i class="fas fa-download mr-1"></i>Download .schem</button>
-                           <button id="export-nbt-btn" class="flex-1 px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm transition-colors"><i class="fas fa-download mr-1"></i>Download .nbt</button>
+                           <button id="export-litematic-btn" class="flex-1 px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors" title="Export as Litematic file">Download .litematic</button>
+                           <button id="export-nbt-btn" class="flex-1 px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm transition-colors" title="Export as JSON structure file">Download .json</button>
                         </div>
                      </div>
                   </div>
@@ -167,7 +169,6 @@
                <div id="crosshair"></div>
                <div id="viewer-overlay" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 pointer-events-none">
                   <div class="text-center">
-                     <i class="fas fa-cube text-6xl text-gray-600 mb-4"></i>
                      <h3 class="text-xl font-semibold text-gray-300 mb-2">No Structure Loaded</h3>
                      <p class="text-gray-400">Upload a file or paste commands to begin</p>
                   </div>
@@ -179,7 +180,7 @@
          <div class="p-6 h-full overflow-y-auto">
             <div class="flex items-center justify-between mb-6">
                <h2 class="text-xl font-semibold">Settings</h2>
-               <button id="settings-close" class="p-2 hover:bg-gray-800 rounded-lg transition-colors"><i class="fas fa-times"></i></button>
+               <button id="settings-close" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">Close</button>
             </div>
             <div class="space-y-6">
                <div>
@@ -188,10 +189,12 @@
                      <div>
                         <label class="block text-sm text-gray-300 mb-1">Mouse Sensitivity</label>
                         <input type="range" min="0.1" max="5" step="0.1" value="1" class="w-full" id="mouse-sensitivity" />
+                        <span id="mouse-sensitivity-value" class="text-xs text-gray-400">1.0</span>
                      </div>
                      <div>
                         <label class="block text-sm text-gray-300 mb-1">Movement Speed</label>
                         <input type="range" min="0.1" max="2" step="0.1" value="0.2" class="w-full" id="movement-speed" />
+                        <span id="movement-speed-value" class="text-xs text-gray-400">0.2</span>
                      </div>
                      <div class="flex items-center space-x-2">
                         <input type="checkbox" id="invert-controls" class="rounded" />
@@ -205,6 +208,10 @@
                      <div class="flex items-center space-x-2">
                         <input type="checkbox" id="show-grid" class="rounded" checked />
                         <label for="show-grid" class="text-sm text-gray-300">Show grid</label>
+                     </div>
+                     <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="show-block-border" class="rounded" checked />
+                        <label for="show-block-border" class="text-sm text-gray-300">Show block hover effect</label>
                      </div>
                   </div>
                </div>
@@ -223,8 +230,6 @@
            if (image.complete) loadDeepslateResources(image);
            else image.addEventListener('load', () => loadDeepslateResources(image));
            image.addEventListener('error', (e) => console.error("Error loading atlas:", e));
-           const remoteUrl = new URLSearchParams(window.location.search).get('remote-url');
-           if (remoteUrl) readFileURL(remoteUrl);
         });
 
         function showNotification(message, type = 'info') {
@@ -247,6 +252,12 @@
            settingsBtn.addEventListener('click', () => settingsPanel.classList.remove('translate-x-full'));
            settingsClose.addEventListener('click', () => settingsPanel.classList.add('translate-x-full'));
            document.getElementById('reset-settings').addEventListener('click', resetSettings);
+           setupSettingsPanel();
+           
+           // Initialize block border setting
+           if (!document.getElementById('show-block-border').checked) {
+             document.getElementById('show-block-border').checked = true;
+           }
            
            document.getElementById('command-data-load-btn').addEventListener('click', handleCommandDataLoad);
            document.getElementById('copy-commands-btn').addEventListener('click', () => navigator.clipboard.writeText(document.getElementById('command-output-textarea').value).then(() => showNotification('Commands copied!', 'success')));
@@ -257,8 +268,15 @@
            document.getElementById('flip-x-btn').addEventListener('click', () => { structureLitematic = flipX(structureLitematic); reprocessAndRender(); });
            document.getElementById('flip-z-btn').addEventListener('click', () => { structureLitematic = flipZ(structureLitematic); reprocessAndRender(); });
            
-           document.getElementById('export-schem-btn').addEventListener('click', () => { const nbtData = convertToSchem(structureLitematic); downloadNbt(nbtData, 'export.schem'); });
-           document.getElementById('export-nbt-btn').addEventListener('click', () => { const nbtData = convertToNbt(structureLitematic); downloadNbt(nbtData, 'export.nbt'); });
+           document.getElementById('export-litematic-btn').addEventListener('click', exportCurrentView);
+           document.getElementById('export-nbt-btn').addEventListener('click', () => { 
+               if (!structureLitematic) {
+                   showNotification('No structure loaded', 'error');
+                   return;
+               }
+               const nbtData = convertToNbt(structureLitematic); 
+               downloadNbt(nbtData, 'export.nbt'); 
+           });
 
            ['origin-x', 'origin-y', 'origin-z'].forEach(id => {
                const input = document.getElementById(id);

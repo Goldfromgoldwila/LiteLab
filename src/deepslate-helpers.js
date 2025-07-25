@@ -52,6 +52,9 @@ function loadDeepslateResources(textureImage) {
     getTextureUV(id) { return textureAtlas.getTextureUV(id) },
     getTextureAtlas() { return textureAtlas.getTextureAtlas() },
     getBlockFlags(id) {
+      const OPAQUE_BLOCKS = window.OPAQUE_BLOCKS || new Set();
+      const NON_SELF_CULLING = new Set();
+      const TRANSPARENT_BLOCKS = new Set();
       return {
         opaque: OPAQUE_BLOCKS.has(id.toString()),
         self_culling: !NON_SELF_CULLING.has(id.toString()),
@@ -62,6 +65,7 @@ function loadDeepslateResources(textureImage) {
     getDefaultBlockProperties(id) { return null },
   }
 
+  console.log("Resources loaded successfully.");
   return deepslateResources;
 }
 
@@ -84,7 +88,7 @@ function structureFromLitematic(litematic, y_min=0, y_max=-1, filterBlockName = 
 
   let blockCount = 0;
   for (let x=0; x < width; x++) {
-    for (let y=y_min; y < effectiveYMax; y++) {
+    for (let y=y_min; y <= Math.min(y_max + 1, height - 1); y++) {
       for (let z=0; z < depth; z++) {
         if (!blocks[x] || !blocks[x][y]) continue;
         const blockID = blocks[x][y][z];
@@ -95,8 +99,14 @@ function structureFromLitematic(litematic, y_min=0, y_max=-1, filterBlockName = 
             const blockFullName = `minecraft:${blockInfo.Name.replace(/^minecraft:/, '')}`;
 
             // If a filter is active, skip any block that doesn't match
-            if (filterBlockName && blockFullName !== filterBlockName) {
-                continue;
+            if (filterBlockName) {
+                if (Array.isArray(filterBlockName)) {
+                    if (!filterBlockName.includes(blockFullName)) {
+                        continue;
+                    }
+                } else if (blockFullName !== filterBlockName) {
+                    continue;
+                }
             }
 
             blockCount++;
