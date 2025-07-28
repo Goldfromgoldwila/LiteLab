@@ -411,3 +411,7 @@ const NON_SELF_CULLING = new Set([
 	'minecraft:oak_leaves',
 	'minecraft:spruce_leaves',
 ])
+// Make available globally
+window.OPAQUE_BLOCKS = OPAQUE_BLOCKS;
+window.TRANSPARENT_BLOCKS = TRANSPARENT_BLOCKS;
+window.NON_SELF_CULLING = NON_SELF_CULLING;

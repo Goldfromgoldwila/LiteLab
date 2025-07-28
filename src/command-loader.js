@@ -1,4 +1,6 @@
-// src/command-loader.jssss
+import { litematicFromCommands } from './command-parser.js';
+
+// src/command-loader.js
 
 /**
  * Handles the "Load Commands" button click event.
@@ -12,11 +14,6 @@ function handleCommandDataLoad() {
         return;
     }
 
-    if (deepslateResources == null) {
-        showNotification('Resources are not ready, please wait a moment and try again.', 'error');
-        return;
-    }
-
     try {
         if (!rawString.includes('/setblock')) {
             throw new Error("Input does not contain any /setblock commands.");
@@ -26,11 +23,21 @@ function handleCommandDataLoad() {
         const schematicName = 'From Commands';
         const litematic = litematicFromCommands(rawString);
 
-        // Use the centralized processing function to render the structure
-        processLoadedLitematic(litematic, schematicName);
+        // Use the globally available processing function to render the structure
+        if (typeof window.processLoadedLitematic === 'function') {
+            window.processLoadedLitematic(litematic, schematicName);
+        } else {
+            console.error('processLoadedLitematic function not available');
+        }
 
     } catch (error) {
         console.error('Error processing command data:', error);
-        showNotification(error.message || 'Invalid command format. Please check the pasted content.', 'error');
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(error.message || 'Invalid command format. Please check the pasted content.', 'error');
+        } else {
+            alert(error.message || 'Invalid command format. Please check the pasted content.');
+        }
     }
 }
+
+export { handleCommandDataLoad };

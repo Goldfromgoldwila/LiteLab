@@ -1,4 +1,9 @@
-// src/block-hover.js
+import { mat4, vec3 } from 'gl-matrix';
+import { getSetting } from './settings.js';
+
+// These variables are defined in viewer.js, but we need to access them here.
+// In a larger refactor, they would be passed as arguments or managed in a shared state.
+let deepslateRenderer = window.deepslateRenderer; 
 
 /**
  * Block Hover Effect (Transparency) for LiteLab
@@ -17,6 +22,7 @@ let hoveredBlock = null;
  * @param {WebGLRenderingContext} gl - The WebGL context
  */
 function initHoverEffect(gl) {
+    console.log('Initializing hover effect...');
     if (!gl) {
         console.error("WebGL context not provided for hover effect initialization.");
         return;
@@ -173,6 +179,7 @@ function castRayForHover(viewMatrix, projectionMatrix, structure) {
  * @param {mat4} projectionMatrix - The current projection matrix.
  */
 function updateHoveredBlock(viewMatrix, projectionMatrix) {
+    deepslateRenderer = window.deepslateRenderer; 
     if (!deepslateRenderer || !deepslateRenderer.structure) {
         hoveredBlock = null;
         updateBlockInfo(null);
@@ -201,21 +208,32 @@ function updateBlockInfo(block, position) {
         blockInfoElement = document.createElement('div');
         blockInfoElement.id = 'block-info';
         blockInfoElement.style.cssText = `
-            position: fixed; bottom: 20px; left: 75%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.4); color: white; padding: 8px 12px;
-            border-radius: 6px; font-size: 12px; z-index: 1001;
-            text-align: center; border: 1px solid rgba(255,255,255,0.1);
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 8px 12px;
+            border-radius: 6px; font-size: 14px; z-index: 1001;
+            text-align: center; border: 1px solid rgba(255,255,255,0.3);
+            pointer-events: none;
         `;
-        document.body.appendChild(blockInfoElement);
+        document.getElementById('viewer').appendChild(blockInfoElement);
     }
     
     if (block && position) {
         let blockName = 'Unknown Block';
         
-        if (block && block.state && block.state.name && block.state.name.path) {
-            blockName = block.state.name.path;
-        } else if (block && block.name && block.name.path) {
-            blockName = block.name.path;
+        // Get block name from litematic structure
+        if (window.AppState && window.AppState.structureLitematic && window.AppState.structureLitematic.regions) {
+            const region = window.AppState.structureLitematic.regions[0];
+            if (region && region.blocks && region.blockPalette) {
+                const blockId = region.blocks[position.x]?.[position.y]?.[position.z];
+                if (blockId && region.blockPalette[blockId]) {
+                    blockName = region.blockPalette[blockId].Name.replace('minecraft:', '');
+                }
+            }
+        }
+        
+        // Fallback to deepslate structure
+        if (blockName === 'Unknown Block' && block && block.name) {
+            blockName = block.name.replace('minecraft:', '');
         }
         
         // Format the block name
@@ -224,12 +242,16 @@ function updateBlockInfo(block, position) {
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
         
+        // Store current hovered block for edit mode
+        window.currentHoveredBlock = { block, position };
+        
         blockInfoElement.innerHTML = `
             <div style="font-weight: bold; margin-bottom: 4px; color: #ffdd44;">${capitalizedName}</div>
             <div style="color: #bbb; font-size: 10px;">X: ${position.x} Y: ${position.y} Z: ${position.z}</div>
         `;
         blockInfoElement.style.display = 'block';
     } else {
+        window.currentHoveredBlock = null;
         blockInfoElement.style.display = 'none';
     }
 }
@@ -245,43 +267,58 @@ function drawHoverEffect(gl, viewMatrix, projectionMatrix) {
     if (!getSetting('show-block-border', true) || !hoveredBlock) return;
     
     if (!gl) return;
+    
+    // Check if context is valid and objects belong to this context
+    if (hoverEffectMesh && !gl.isProgram(hoverEffectMesh.program)) {
+        hoverEffectMesh = null;
+    }
+    
     if (!hoverEffectMesh) {
-        initHoverEffect(gl);
-        if (!hoverEffectMesh) return;
+        try {
+            initHoverEffect(gl);
+            if (!hoverEffectMesh) return;
+        } catch (e) {
+            return; // Silently fail to prevent spam
+        }
     }
 
     if (!projectionMatrix) return;
     
-    const wasBlending = gl.getParameter(gl.BLEND);
-    const wasCulling = gl.getParameter(gl.CULL_FACE);
+    try {
+        const wasBlending = gl.getParameter(gl.BLEND);
+        const wasCulling = gl.getParameter(gl.CULL_FACE);
 
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.disable(gl.CULL_FACE);
-    gl.depthMask(false);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.disable(gl.CULL_FACE);
+        gl.disable(gl.DEPTH_TEST);
 
-    gl.useProgram(hoverEffectMesh.program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, hoverEffectMesh.buffers.vertex);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hoverEffectMesh.buffers.index);
-    gl.enableVertexAttribArray(hoverEffectMesh.attributes.position);
-    gl.vertexAttribPointer(hoverEffectMesh.attributes.position, 3, gl.FLOAT, false, 0, 0);
-    
-    const modelMatrix = mat4.create();
-    mat4.translate(modelMatrix, modelMatrix, [hoveredBlock.x, hoveredBlock.y, hoveredBlock.z]);
-    
-    const modelViewMatrix = mat4.create();
-    mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
-    
-    gl.uniformMatrix4fv(hoverEffectMesh.uniforms.modelViewMatrix, false, modelViewMatrix);
-    gl.uniformMatrix4fv(hoverEffectMesh.uniforms.projectionMatrix, false, projectionMatrix);
-    gl.uniform4fv(hoverEffectMesh.uniforms.color, [0.0, 0.0, 0.0, 0.2]);
-    
-    gl.drawElements(gl.TRIANGLES, hoverEffectMesh.buffers.count, gl.UNSIGNED_SHORT, 0);
-    
-    gl.depthMask(true);
-    if (!wasBlending) gl.disable(gl.BLEND);
-    if (wasCulling) gl.enable(gl.CULL_FACE);
-    gl.disableVertexAttribArray(hoverEffectMesh.attributes.position);
+        gl.useProgram(hoverEffectMesh.program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, hoverEffectMesh.buffers.vertex);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, hoverEffectMesh.buffers.index);
+        gl.enableVertexAttribArray(hoverEffectMesh.attributes.position);
+        gl.vertexAttribPointer(hoverEffectMesh.attributes.position, 3, gl.FLOAT, false, 0, 0);
+        
+        const modelMatrix = mat4.create();
+        mat4.translate(modelMatrix, modelMatrix, [hoveredBlock.x, hoveredBlock.y, hoveredBlock.z]);
+        
+        const modelViewMatrix = mat4.create();
+        mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
+        
+        gl.uniformMatrix4fv(hoverEffectMesh.uniforms.modelViewMatrix, false, modelViewMatrix);
+        gl.uniformMatrix4fv(hoverEffectMesh.uniforms.projectionMatrix, false, projectionMatrix);
+        gl.uniform4fv(hoverEffectMesh.uniforms.color, [0.0, 0.0, 0.0, 0.3]);
+        
+        gl.drawElements(gl.TRIANGLES, hoverEffectMesh.buffers.count, gl.UNSIGNED_SHORT, 0);
+        
+        gl.enable(gl.DEPTH_TEST);
+        if (!wasBlending) gl.disable(gl.BLEND);
+        if (wasCulling) gl.enable(gl.CULL_FACE);
+        gl.disableVertexAttribArray(hoverEffectMesh.attributes.position);
+    } catch (e) {
+        // Silently handle WebGL errors to prevent spam
+        return;
+    }
 }
 
 /**
@@ -290,7 +327,7 @@ function drawHoverEffect(gl, viewMatrix, projectionMatrix) {
  * @param {mat4} viewMatrix - The current camera view matrix.
  * @param {mat4} projectionMatrix - The camera's projection matrix.
  */
-function applyBlockHoverEffect(gl, viewMatrix, projectionMatrix) {
+export function applyBlockHoverEffect(gl, viewMatrix, projectionMatrix) {
     updateHoveredBlock(viewMatrix, projectionMatrix);
     drawHoverEffect(gl, viewMatrix, projectionMatrix);
 }
@@ -298,14 +335,6 @@ function applyBlockHoverEffect(gl, viewMatrix, projectionMatrix) {
 /**
  * Setup function to be called once the canvas and GL context are available.
  */
-function initializeBlockHover() {
-    try {
-        if (!webglContext) {
-            console.warn('WebGL context not available, hover effect will initialize on first use.');
-            return;
-        }
-        initHoverEffect(webglContext);
-    } catch (error) {
-        console.error('Error initializing block hover effect:', error);
-    }
+export function initializeBlockHover() {
+    // This is now called implicitly on first use, so the export is mainly for consistency.
 }

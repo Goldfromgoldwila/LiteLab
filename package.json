@@ -1,0 +1,24 @@
+{
+  "name": "litematic-viewer",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "deepslate": "^0.10.1",
+    "gl-matrix": "^3.4.3",
+    "pako": "^2.1.0",
+    "prismarine-nbt": "^2.7.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.2.11"
+  }
+}

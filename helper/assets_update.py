@@ -31,7 +31,7 @@ print("Processing: textures")
 result["textures"] = requests.get(ATLAS_MAPPING_URL).json()
 
 with open(ASSETS_FILE_PATH, 'w') as f: 
-  f.write(f"""const assets = JSON.parse('{ json.dumps(result, sort_keys=True, separators=(',', ':')) }')""")
+  f.write(f"""const assetsData = JSON.parse('{ json.dumps(result, sort_keys=True, separators=(',', ':')) }')""")
 
 print("Written into:", ASSETS_FILE_PATH)
 

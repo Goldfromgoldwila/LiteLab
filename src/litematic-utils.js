@@ -1,3 +1,6 @@
+import pako from 'pako';
+import nbt from 'prismarine-nbt';
+
 class Litematic { }
 
 class LitematicRegion {
@@ -22,11 +25,11 @@ function readLitematicFromNBTData(nbtdata) {
     var blockPalette = __stripNBTTyping(region.BlockStatePalette);
     
     // Find the minimum number of bits needed to express all blocks
-    nbits = Math.ceil(Math.log2(blockPalette.length));
+    const nbits = Math.ceil(Math.log2(blockPalette.length));
 
-    width = region.Size.value.x.value; 
-    height = region.Size.value.y.value;
-    depth = region.Size.value.z.value; 
+    const width = region.Size.value.x.value; 
+    const height = region.Size.value.y.value;
+    const depth = region.Size.value.z.value; 
 
     var blockData = region.BlockStates.value;
 
@@ -60,10 +63,10 @@ function processNBTRegionData(regionData, nbits, width, height, depth) {
   // I ripped off some python code for this, can't remember where from.
   // (* of course this is javascript so each int is split into an array fo 2 32-bit ints)
   
-  mask = (1 << nbits) - 1;
+  const mask = (1 << nbits) - 1;
   
-  y_shift = Math.abs(width * depth);
-  z_shift = Math.abs(width);
+  const y_shift = Math.abs(width * depth);
+  const z_shift = Math.abs(width);
   var blocks = new Array();
   for (let x=0; x < Math.abs(width); x++) {
     blocks[x] = new Array();
@@ -71,17 +74,18 @@ function processNBTRegionData(regionData, nbits, width, height, depth) {
       blocks[x][y] = new Array();
       for (let z=0; z < Math.abs(depth); z++) {
         
-        index = y * y_shift + z * z_shift + x;
+        const index = y * y_shift + z * z_shift + x;
         
-        start_offset = index * nbits;
+        const start_offset = index * nbits;
         
-        start_arr_index = start_offset >>> 5; /// divide by 32
-        end_arr_index = ((index + 1) * nbits - 1) >>> 5;
-        start_bit_offset = start_offset & 0x1F; // % 32
+        const start_arr_index = start_offset >>> 5; /// divide by 32
+        const end_arr_index = ((index + 1) * nbits - 1) >>> 5;
+        const start_bit_offset = start_offset & 0x1F; // % 32
         
         // This bit here is to handle the fact that the 64 bit numbers have to be broken down to
         // 32bit numbers in javascript.
-        half_ind = start_arr_index >>> 1;
+        const half_ind = start_arr_index >>> 1;
+        let blockStart, blockEnd;
         if ((start_arr_index & 0x1) == 0) {
           blockStart = regionData[half_ind][1];
           blockEnd = regionData[half_ind][0];
@@ -98,8 +102,8 @@ function processNBTRegionData(regionData, nbits, width, height, depth) {
         if (start_arr_index == end_arr_index) {
             blocks[x][y][z] = (blockStart >>> start_bit_offset) & mask;
         } else {
-            end_offset = 32 - start_bit_offset; // num curtailed bits
-            val = ((blockStart >>> start_bit_offset) & mask) | ((blockEnd << end_offset) & mask);
+            const end_offset = 32 - start_bit_offset; // num curtailed bits
+            const val = ((blockStart >>> start_bit_offset) & mask) | ((blockEnd << end_offset) & mask);
             blocks[x][y][z] = val;// & mask;
         }
         
@@ -179,3 +183,35 @@ function getMaterialList(litematic) {
   }
   return blockCounts;
 }
+
+function generateSetblockCommands(litematic, origin = [0, 0, 0]) {
+  const commands = [];
+  const [originX, originY, originZ] = origin;
+  
+  for (const region of litematic.regions) {
+    const { blocks, blockPalette } = region;
+    const width = Math.abs(region.width);
+    const height = Math.abs(region.height);
+    const depth = Math.abs(region.depth);
+    
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        for (let z = 0; z < depth; z++) {
+          if (!blocks[x] || !blocks[x][y]) continue;
+          const blockID = blocks[x][y][z];
+          if (blockID > 0 && blockID < blockPalette.length) {
+            const blockInfo = blockPalette[blockID];
+            const blockName = blockInfo.Name.replace(/^minecraft:/, '');
+            const worldX = originX + x;
+            const worldY = originY + y;
+            const worldZ = originZ + z;
+            commands.push(`/setblock ${worldX} ${worldY} ${worldZ} minecraft:${blockName}`);
+          }
+        }
+      }
+    }
+  }
+  return commands;
+}
+
+export { readLitematicFromNBTData, getMaterialList, generateSetblockCommands };

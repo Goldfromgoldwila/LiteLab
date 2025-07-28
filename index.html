@@ -4,66 +4,256 @@
       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
       <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0"/>
       <title>LiteLabs</title>
-
-      <!-- Libraries -->
-      <script src="https://unpkg.com/deepslate@0.10.1"></script>
-      <script src="https://unpkg.com/gl-matrix@3.4.3/gl-matrix-min.js"></script>
-      <script src="https://unpkg.com/prismarine-nbt@2.2.0/dist/index.js"></script>
-      <script src="https://unpkg.com/pako@2.1.0/dist/pako.min.js"></script>
-      <script src="https://cdn.tailwindcss.com"></script>
-      <!-- Font Awesome script removed -->
-
-      <!-- Resources -->
-      <script src="resource/assets.js"></script>
-      <script src="resource/opaque.js"></script>
+      <link rel="icon" type="image/png" href="/icon.png" sizes="64x64">
 
       <!-- Google Fonts and Icons -->
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
-      <!-- Tailwind Config -->
-      <script>
-        tailwind.config = {
-          theme: {
-            extend: {
-              fontFamily: { 'inter': ['Inter', 'sans-serif'] },
-              colors: { 'minecraft-green': '#00ff00', 'minecraft-brown': '#8B4513', 'minecraft-blue': '#1e40af', 'minecraft-gray': '#4a5568' }
-            }
-          }
-        }
-      </script>
+      <!-- 
+        IMPORTANT: These resource scripts are loaded from the 'public' directory.
+        They will create global 'window.assets' and 'window.OPAQUE_BLOCKS' variables 
+        BEFORE the main module script runs, solving the race condition.
+      -->
+      <script src="/resource/assets.js"></script>
+      <script src="/resource/opaque.js"></script>
+      
+      <!-- The single entry point for our entire application -->
+      <script type="module" src="/src/main.js"></script>
 
-      <!-- App Scripts -->
-      <script src="src/deepslate-helpers.js"></script>
-      <script src="src/litematic-utils.js"></script>
-      <script src="src/main.js"></script>
-      <script src="src/settings.js"></script>
-      <script src="src/viewer.js"></script>
-      <script src="src/block-hover.js"></script>
-      <script src="src/compass.js"></script>
-      <script src="src/command-loader.js"></script>
-      <script src="src/command-parser.js"></script>
-      <script src="src/command-generator.js"></script>
-      <script src="src/transformations.js"></script>
-      <script src="src/exporter.js"></script>
+   </head>
+   <body class="bg-slate-50 text-slate-900 font-inter transition-colors duration-300 h-screen overflow-hidden">
+      <div id="app" class="h-full flex flex-col">
+         <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50 shadow-sm">
+            <div class="max-w-7xl mx-auto px-6">
+               <div class="flex justify-between items-center h-14">
+                  <div class="flex items-center">
+                     <img src="/logo.png" alt="LiteLab Logo" class="w-46 h-32 rounded-lg">
+                  </div>
+                  <div class="flex items-center space-x-2">
+                     <button id="load-new-btn" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all" title="Load new file">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                     </button>
+                     <a href="https://github.com/Goldfromgoldwila/LiteLab" target="_blank" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all" title="View on GitHub">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                     </a>
+                     <button id="settings-button" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all" title="Settings">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                     </button>
+                     <button id="theme-toggle" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all" title="Toggle theme">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"></path></svg>
+                     </button>
+                     <button id="fullscreen-btn" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all" title="Fullscreen">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                     </button>
+                  </div>
+               </div>
+            </div>
+         </header>
 
-      <!-- Google Analytics script removed -->
+         <div class="flex flex-1 overflow-hidden">
+            <div id="left-panel" class="w-80 bg-white border-r border-slate-200 shadow-sm flex flex-col">
+               <div class="flex-1 overflow-y-auto">
+               <div id="file-panel" class="p-6 border-b border-slate-100">
+                  <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                     <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                     Load File
+                  </h2>
+                  <div id="file-loader-panel">
+                     <input id="file-upload" type="file" accept=".litematic,.nbt" onchange="readFileInput(this)" hidden multiple />
+                     <label for="file-upload" id="drop-zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" class="block">
+                        <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-200">
+                           <div class="w-12 h-12 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+                              <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                           </div>
+                           <h3 class="text-sm font-medium text-slate-700 mb-1">Drop files or click to browse</h3>
+                           <p class="text-xs text-slate-500">.litematic and .nbt files supported</p>
+                        </div>
+                     </label>
+                  </div>
+               </div>
+               <div id="command-panel" class="p-6 border-b border-slate-100">
+                  <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                     <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                     Commands
+                  </h2>
+                  <div class="space-y-3">
+                     <textarea id="command-data-input" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm font-mono" rows="4" placeholder="Paste /setblock commands here..."></textarea>
+                     <button id="command-data-load-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm" title="Parse commands">Load Commands</button>
+                  </div>
+               </div>
+               <div id="controls-panel" class="p-6 hidden">
+                  <div class="mb-6">
+                     <h3 id="schematic-name-display" class="text-lg font-semibold text-slate-800 mb-1 truncate hidden"></h3>
+                     <p class="text-sm text-slate-500">Structure loaded successfully</p>
+                  </div>
+                  
+                  <button id="edit-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-xl transition-colors text-sm mb-2 flex items-center justify-center space-x-2" title="Edit mode">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                     <span>Edit Mode</span>
+                  </button>
+                  <button id="undo-break-btn" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm mb-4 hidden" title="Undo break block">Undo Break Block</button>
+                  <div class="bg-slate-50 rounded-xl p-4 mb-6">
+                     <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-semibold text-slate-700 flex items-center">
+                           <svg class="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                           Transform
+                        </h4>
+                        <button id="undo-transform-btn" class="px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 text-xs rounded-md hidden transition-colors" title="Undo transform">Undo</button>
+                     </div>
+                     <div class="grid grid-cols-3 gap-2">
+                        <button id="rotate-btn" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 transition-colors" title="Rotate Y">↻ Rotate</button>
+                        <button id="flip-x-btn" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 transition-colors" title="Flip X">⟷ Flip X</button>
+                        <button id="flip-z-btn" class="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 transition-colors" title="Flip Z">⟷ Flip Z</button>
+                     </div>
+                  </div>
+                  <div id="layer-controls" class="bg-slate-50 rounded-xl p-4 mb-6 hidden">
+                     <h4 class="text-sm font-semibold text-slate-700 mb-4 flex items-center">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8l4 4m0-8l4 4-4 4m6 0v12m0 0l4-4-4-4m0 8l-4-4 4-4"></path></svg>
+                        Layer Range
+                     </h4>
+                     <div class="grid grid-cols-2 gap-4">
+                        <div>
+                           <label class="block text-xs font-medium text-slate-600 mb-2">Min Y</label>
+                           <input type="range" id="miny-slider" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer slider" />
+                           <span id="miny-value" class="text-xs text-slate-500 mt-1 block text-center">0</span>
+                        </div>
+                        <div>
+                           <label class="block text-xs font-medium text-slate-600 mb-2">Max Y</label>
+                           <input type="range" id="maxy-slider" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer slider" />
+                           <span id="maxy-value" class="text-xs text-slate-500 mt-1 block text-center">10</span>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  <div id="material-controls" class="hidden">
+                     <div class="flex items-center justify-between mb-4">
+                        <h4 class="text-sm font-semibold text-slate-700 flex items-center">
+                           <svg class="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                           Materials
+                        </h4>
+                        <span id="total-blocks-info" class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-md"></span>
+                     </div>
+                     <div id="material-list-container" class="bg-slate-50 rounded-xl p-3">
+                        <div id="material-list" class="max-h-48 overflow-y-auto space-y-1 mb-3"></div>
+                        <button id="download-csv-btn" class="w-full px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-colors" title="Export CSV">Download CSV</button>
+                     </div>
+                     <div id="command-output-section" class="bg-slate-50 rounded-xl p-4 mb-6 mt-6 hidden">
+                        <div class="flex items-center justify-between mb-4">
+                           <h4 class="text-sm font-semibold text-slate-700 flex items-center">
+                              <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                              Commands
+                           </h4>
+                           <button id="copy-commands-btn" class="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-md text-xs font-medium transition-colors" title="Copy all">Copy</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                           <input type="text" id="origin-x" placeholder="X" value="0" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           <input type="text" id="origin-y" placeholder="Y" value="0" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                           <input type="text" id="origin-z" placeholder="Z" value="0" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <textarea id="command-output-textarea" readonly class="w-full h-32 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono resize-none focus:outline-none"></textarea>
+                     </div>
+                     
+                     <div class="bg-slate-50 rounded-xl p-4">
+                        <h4 class="text-sm font-semibold text-slate-700 mb-3 flex items-center">
+                           <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                           Export
+                        </h4>
+                        <div class="space-y-2">
+                           <button id="export-litematic-btn" class="w-full px-3 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors" title="Export litematic">Download .litematic</button>
+                           <button id="export-nbt-btn" class="w-full px-3 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors" title="Export NBT">Download .nbt</button>
+                           <button id="undo-edit-btn" class="w-full px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors hidden" title="Undo edit">Undo Edit</button>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               </div>
+            </div>
+            <div id="right-panel" class="flex-1 bg-slate-900 relative overflow-hidden">
+               <div id="viewer" class="absolute inset-0 cursor-pointer">
+                  <div id="crosshair"></div>
+               </div>
+               <div id="viewer-overlay" class="absolute inset-0 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm pointer-events-none">
+                  <div class="text-center">
+                     <div class="w-20 h-20 mx-auto mb-6 bg-slate-800 rounded-2xl flex items-center justify-center shadow-lg">
+                        <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"></path></svg>
+                     </div>
+                     <h3 class="text-lg font-semibold text-slate-300 mb-2">No Structure Loaded</h3>
+                     <p class="text-slate-400 text-sm">Upload a .litematic file or paste commands to begin</p>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div id="settings-panel" class="fixed inset-y-0 right-0 w-80 bg-white border-l border-slate-200 transform translate-x-full transition-transform z-50 shadow-xl">
+         <div class="p-6 h-full overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+               <h2 class="text-lg font-semibold text-slate-800">Settings</h2>
+               <button id="settings-close" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                  <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+               </button>
+            </div>
+            <div class="space-y-6">
+               <div class="bg-slate-50 rounded-xl p-4">
+                  <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center">
+                     <svg class="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.121 2.122"></path></svg>
+                     Camera
+                  </h3>
+                  <div class="space-y-4">
+                     <div>
+                        <div class="flex justify-between items-center mb-2">
+                           <label class="text-xs font-medium text-slate-600">Mouse Sensitivity</label>
+                           <span id="mouse-sensitivity-value" class="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded">1.0</span>
+                        </div>
+                        <input type="range" min="0.1" max="5" step="0.1" value="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer slider" id="mouse-sensitivity" />
+                     </div>
+                     <div>
+                        <div class="flex justify-between items-center mb-2">
+                           <label class="text-xs font-medium text-slate-600">Movement Speed</label>
+                           <span id="movement-speed-value" class="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded">0.2</span>
+                        </div>
+                        <input type="range" min="0.1" max="2" step="0.1" value="0.2" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer slider" id="movement-speed" />
+                     </div>
+                     <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="invert-controls" class="w-4 h-4 text-blue-500 bg-slate-100 border-slate-300 rounded focus:ring-blue-500" />
+                        <label for="invert-controls" class="text-xs text-slate-600">Invert mouse controls</label>
+                     </div>
+                  </div>
+               </div>
+               <div class="bg-slate-50 rounded-xl p-4">
+                  <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center">
+                     <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                     Display
+                  </h3>
+                  <div class="space-y-3">
+                     <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="show-grid" class="w-4 h-4 text-blue-500 bg-slate-100 border-slate-300 rounded focus:ring-blue-500" checked />
+                        <label for="show-grid" class="text-xs text-slate-600">Show grid</label>
+                     </div>
+                     <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="show-block-border" class="w-4 h-4 text-blue-500 bg-slate-100 border-slate-300 rounded focus:ring-blue-500" checked />
+                        <label for="show-block-border" class="text-xs text-slate-600">Block hover effect</label>
+                     </div>
+                  </div>
+               </div>
+               <button id="reset-settings" class="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm">Reset to Default</button>
+            </div>
+         </div>
+      </div>
+      <div id="notification-container"></div>
+      <!-- atlas.png is now loaded from the 'public' directory -->
+      <img id="atlas" src="/resource/atlas.png" alt="Texture atlas" crossorigin="anonymous" hidden>
 
       <style>
-         body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%); color: #e2e8f0; margin: 0; padding: 0; overflow-x: hidden; }
-         .glass-effect { background: rgba(0, 0, 0, 0.25); backdrop-filter: blur(10px); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.18); }
-         #notification-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: center; }
-         .notification { padding: 10px 20px; border-radius: 8px; color: white; opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
-         .notification.show { opacity: 1; transform: translateY(0); }
-         .notification.success { background-color: #28a745; }
-         .notification.error { background-color: #dc3545; }
-         .notification.info { background-color: #17a2b8; }
+         .font-inter { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+         
          #crosshair {
             position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; 
             transform: translate(-50%, -50%); pointer-events: none; display: none; z-index: 100;
+            transition: opacity 0.2s ease;
          }
          #crosshair::before, #crosshair::after {
-            content: ''; position: absolute; background-color: white;
+            content: ''; position: absolute; background-color: white; border-radius: 1px;
          }
          #crosshair::before {
             width: 16px; height: 2px; top: 7px; left: 0;
@@ -71,238 +261,142 @@
          #crosshair::after {
             width: 2px; height: 16px; top: 0; left: 7px;
          }
+         
+         canvas {
+            transition: cursor 0.2s ease;
+         }
+         
+         .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+         }
+         
+         .slider::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+         }
+         
+         .notification {
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+         }
+         
+         .notification.success {
+            background: rgba(34, 197, 94, 0.9);
+         }
+         
+         .notification.error {
+            background: rgba(239, 68, 68, 0.9);
+         }
+         
+         .notification.info {
+            background: rgba(59, 130, 246, 0.9);
+         }
+         
+         #drop-zone.drag-over {
+            border-color: #3b82f6 !important;
+            background-color: rgba(59, 130, 246, 0.05) !important;
+         }
+         
+         /* Dark theme styles */
+         .dark {
+            color-scheme: dark;
+         }
+         
+         .dark body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+         }
+         
+         .dark header {
+            background-color: rgba(15, 23, 42, 0.8);
+            border-color: rgba(51, 65, 85, 0.6);
+         }
+         
+         .dark #left-panel {
+            background-color: #1e293b;
+            border-color: #334155;
+         }
+         
+         .dark .bg-slate-50 {
+            background-color: #334155 !important;
+         }
+         
+         .dark .bg-white {
+            background-color: #1e293b !important;
+         }
+         
+         .dark .text-slate-800 {
+            color: #e2e8f0 !important;
+         }
+         
+         .dark .text-slate-700 {
+            color: #cbd5e1 !important;
+         }
+         
+         .dark .text-slate-600 {
+            color: #94a3b8 !important;
+         }
+         
+         .dark .text-slate-500 {
+            color: #64748b !important;
+         }
+         
+         .dark .border-slate-200 {
+            border-color: #475569 !important;
+         }
+         
+         .dark .border-slate-100 {
+            border-color: #334155 !important;
+         }
+         
+         /* Dark theme for 3D viewer elements */
+         .dark #right-panel {
+            background-color: #0f172a;
+         }
+         
+         .dark #viewer-overlay {
+            background-color: rgba(15, 23, 42, 0.9);
+         }
+         
+         .dark #viewer-overlay .bg-slate-800 {
+            background-color: #1e293b !important;
+         }
+         
+         .dark #viewer-overlay .text-slate-400 {
+            color: #64748b !important;
+         }
+         
+         .dark #viewer-overlay .text-slate-300 {
+            color: #cbd5e1 !important;
+         }
+         
+         /* Dark theme for overlays */
+         .dark #block-info {
+            background-color: rgba(15, 23, 42, 0.9) !important;
+            border-color: rgba(71, 85, 105, 0.5) !important;
+         }
+         
+         .dark #nearest-block-info {
+            background-color: rgba(15, 23, 42, 0.9) !important;
+            border-color: rgba(71, 85, 105, 0.5) !important;
+         }
+         
+         .dark #compass-text {
+            background-color: rgba(15, 23, 42, 0.8) !important;
+         }
       </style>
-   </head>
-   <body class="bg-gray-900 text-white">
-      <div id="app" class="min-h-screen">
-         <header class="bg-black bg-opacity-50 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-               <div class="flex justify-between items-center h-16">
-                  <div class="flex items-center">
-                     <h1 class="text-2xl font-bold text-white">LiteLabs</h1>
-                  </div>
-                  <div class="flex items-center space-x-4">
-                     <button id="load-new-btn" class="p-2 rounded-lg hover:bg-gray-800 transition-colors" title="Load new litematic file">Load New</button>
-                     <button id="settings-button" class="p-2 rounded-lg hover:bg-gray-800 transition-colors" title="Open settings panel">Settings</button>
-                     <button id="fullscreen-btn" class="p-2 rounded-lg hover:bg-gray-800 transition-colors" title="Toggle fullscreen mode">Fullscreen</button>
-                  </div>
-               </div>
-            </div>
-         </header>
-
-         <div class="flex h-screen">
-            <div id="left-panel" class="w-1/2 bg-gray-900 border-r border-gray-800 overflow-y-auto">
-               <div id="file-panel" class="p-6 border-b border-gray-800">
-                  <h2 class="text-xl font-semibold mb-4 flex items-center">Load Schematic File</h2>
-                  <div id="file-loader-panel" class="space-y-4">
-                     <input id="file-upload" type="file" onchange="readFileInput(this)" hidden multiple />
-                     <label for="file-upload" id="drop-zone" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);" class="block">
-                        <div class="glass-effect p-8 text-center cursor-pointer hover:bg-opacity-30 transition-all border-2 border-dashed border-gray-600 hover:border-minecraft-green">
-                           <h3 class="text-lg font-semibold mb-2">Drop files here or click to browse</h3>
-                           <p class="text-gray-400">Support for .litematic files</p>
-                        </div>
-                     </label>
-                  </div>
-               </div>
-               <div id="command-panel" class="p-6 border-b border-gray-800">
-                  <h2 class="text-xl font-semibold mb-4 flex items-center">Load from Commands</h2>
-                  <div class="space-y-4">
-                     <textarea id="command-data-input" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:border-minecraft-green resize-y" rows="6" placeholder="Paste a list of /setblock commands here..."></textarea>
-                     <button id="command-data-load-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center" title="Parse and load setblock commands">Load Commands</button>
-                  </div>
-               </div>
-               <div id="controls-panel" class="p-6 hidden">
-                  <div class="flex items-center justify-between mb-4">
-                     <h2 class="text-xl font-semibold flex items-center">View Controls</h2>
-                  </div>
-                  <h3 id="schematic-name-display" class="text-lg font-semibold text-gray-300 mb-4 truncate hidden"></h3>
-                  <div class="mb-4 p-4 bg-gray-800 rounded-lg">
-                     <h4 class="text-md font-semibold mb-3">Transformations</h4>
-                     <div class="grid grid-cols-3 gap-2">
-                        <button id="rotate-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded" title="Rotate structure 90° around Y axis">Rotate Y</button>
-                        <button id="flip-x-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded" title="Mirror structure along X axis">Flip X</button>
-                        <button id="flip-z-btn" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-sm rounded" title="Mirror structure along Z axis">Flip Z</button>
-                     </div>
-                  </div>
-                  <div id="layer-controls" class="space-y-4 hidden">
-                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Layer Range</label>
-                        <div class="flex items-center space-x-4">
-                           <div class="flex-1"><label class="block text-xs text-gray-400 mb-1">Min Y</label><input type="range" id="miny-slider" class="w-full" /><span id="miny-value" class="text-xs text-gray-400">0</span></div>
-                           <div class="flex-1"><label class="block text-xs text-gray-400 mb-1">Max Y</label><input type="range" id="maxy-slider" class="w-full" /><span id="maxy-value" class="text-xs text-gray-400">10</span></div>
-                        </div>
-                     </div>
-                  </div>
-                  <div id="material-controls" class="space-y-4 hidden">
-                     <div class="flex items-center justify-between">
-                        <label class="text-sm font-medium text-gray-300">Material List</label>
-                        <span id="total-blocks-info" class="text-sm text-gray-400"></span>
-                     </div>
-                     <div id="material-list-container">
-                        <div id="material-list" class="max-h-60 overflow-y-auto space-y-1"></div>
-                        <button id="download-csv-btn" class="mt-2 w-full px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors" title="Export material list as CSV file">Download CSV</button>
-                     </div>
-                     <div id="command-output-section" class="mt-4 hidden">
-                        <div class="flex items-center justify-between mb-2">
-                           <h3 class="text-sm font-medium text-gray-300">Setblock Commands</h3>
-                           <button id="copy-commands-btn" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs" title="Copy all setblock commands to clipboard">Copy All</button>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 mb-2">
-                           <input type="text" id="origin-x" placeholder="X" value="0" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-center text-sm">
-                           <input type="text" id="origin-y" placeholder="Y" value="0" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-center text-sm">
-                           <input type="text" id="origin-z" placeholder="Z" value="0" class="w-full bg-gray-700 border border-gray-600 rounded p-1 text-center text-sm">
-                        </div>
-                        <textarea id="command-output-textarea" readonly class="w-full h-48 bg-gray-800 border border-gray-600 rounded-lg p-2 text-xs font-mono resize-y"></textarea>
-                     </div>
-                     <div class="mt-4">
-                        <h4 class="text-sm font-semibold mb-2">Export Schematic</h4>
-                        <div class="flex space-x-2">
-                           <button id="export-litematic-btn" class="flex-1 px-3 py-1 bg-green-700 hover:bg-green-600 text-white rounded text-sm transition-colors" title="Export as Litematic file">Download .litematic</button>
-                           <button id="export-nbt-btn" class="flex-1 px-3 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm transition-colors" title="Export as JSON structure file">Download .json</button>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-            </div>
-            <div id="right-panel" class="w-1/2 bg-black relative">
-               <div id="viewer" class="w-full h-full cursor-pointer"></div>
-               <div id="crosshair"></div>
-               <div id="viewer-overlay" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 pointer-events-none">
-                  <div class="text-center">
-                     <h3 class="text-xl font-semibold text-gray-300 mb-2">No Structure Loaded</h3>
-                     <p class="text-gray-400">Upload a file or paste commands to begin</p>
-                  </div>
-               </div>
-            </div>
-         </div>
-      </div>
-      <div id="settings-panel" class="fixed inset-y-0 right-0 w-96 bg-gray-900 border-l border-gray-800 transform translate-x-full transition-transform z-50">
-         <div class="p-6 h-full overflow-y-auto">
-            <div class="flex items-center justify-between mb-6">
-               <h2 class="text-xl font-semibold">Settings</h2>
-               <button id="settings-close" class="p-2 hover:bg-gray-800 rounded-lg transition-colors">Close</button>
-            </div>
-            <div class="space-y-6">
-               <div>
-                  <h3 class="text-lg font-medium mb-3">Camera Controls</h3>
-                  <div class="space-y-3">
-                     <div>
-                        <label class="block text-sm text-gray-300 mb-1">Mouse Sensitivity</label>
-                        <input type="range" min="0.1" max="5" step="0.1" value="1" class="w-full" id="mouse-sensitivity" />
-                        <span id="mouse-sensitivity-value" class="text-xs text-gray-400">1.0</span>
-                     </div>
-                     <div>
-                        <label class="block text-sm text-gray-300 mb-1">Movement Speed</label>
-                        <input type="range" min="0.1" max="2" step="0.1" value="0.2" class="w-full" id="movement-speed" />
-                        <span id="movement-speed-value" class="text-xs text-gray-400">0.2</span>
-                     </div>
-                     <div class="flex items-center space-x-2">
-                        <input type="checkbox" id="invert-controls" class="rounded" />
-                        <label for="invert-controls" class="text-sm text-gray-300">Invert mouse controls</label>
-                     </div>
-                  </div>
-               </div>
-               <div>
-                  <h3 class="text-lg font-medium mb-3">Display Options</h3>
-                  <div class="space-y-3">
-                     <div class="flex items-center space-x-2">
-                        <input type="checkbox" id="show-grid" class="rounded" checked />
-                        <label for="show-grid" class="text-sm text-gray-300">Show grid</label>
-                     </div>
-                     <div class="flex items-center space-x-2">
-                        <input type="checkbox" id="show-block-border" class="rounded" checked />
-                        <label for="show-block-border" class="text-sm text-gray-300">Show block hover effect</label>
-                     </div>
-                  </div>
-               </div>
-               <button id="reset-settings" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Reset to Default</button>
-            </div>
-         </div>
-      </div>
-      <div id="notification-container"></div>
-      <img id="atlas" src="resource/atlas.png" alt="Texture atlas" crossorigin="anonymous" hidden>
-
-      <script>
-        document.addEventListener("DOMContentLoaded", () => {
-           console.log("DOM loaded, initializing app...");
-           initializeUI();
-           const image = document.getElementById('atlas');
-           if (image.complete) loadDeepslateResources(image);
-           else image.addEventListener('load', () => loadDeepslateResources(image));
-           image.addEventListener('error', (e) => console.error("Error loading atlas:", e));
-        });
-
-        function showNotification(message, type = 'info') {
-           const container = document.getElementById('notification-container');
-           const notification = document.createElement('div');
-           notification.className = `notification ${type}`;
-           notification.textContent = message;
-           container.appendChild(notification);
-           setTimeout(() => notification.classList.add('show'), 10);
-           setTimeout(() => {
-              notification.classList.remove('show');
-              notification.addEventListener('transitionend', () => notification.remove());
-           }, 3000);
-        }
-
-        function initializeUI() {
-           const settingsBtn = document.getElementById('settings-button');
-           const settingsPanel = document.getElementById('settings-panel');
-           const settingsClose = document.getElementById('settings-close');
-           settingsBtn.addEventListener('click', () => settingsPanel.classList.remove('translate-x-full'));
-           settingsClose.addEventListener('click', () => settingsPanel.classList.add('translate-x-full'));
-           document.getElementById('reset-settings').addEventListener('click', resetSettings);
-           setupSettingsPanel();
-           
-           // Initialize block border setting
-           if (!document.getElementById('show-block-border').checked) {
-             document.getElementById('show-block-border').checked = true;
-           }
-           
-           document.getElementById('command-data-load-btn').addEventListener('click', handleCommandDataLoad);
-           document.getElementById('copy-commands-btn').addEventListener('click', () => navigator.clipboard.writeText(document.getElementById('command-output-textarea').value).then(() => showNotification('Commands copied!', 'success')));
-           document.getElementById('load-new-btn').addEventListener('click', resetAppView);
-           document.getElementById('fullscreen-btn').addEventListener('click', () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
-           
-           document.getElementById('rotate-btn').addEventListener('click', () => { structureLitematic = rotateY90(structureLitematic); reprocessAndRender(); });
-           document.getElementById('flip-x-btn').addEventListener('click', () => { structureLitematic = flipX(structureLitematic); reprocessAndRender(); });
-           document.getElementById('flip-z-btn').addEventListener('click', () => { structureLitematic = flipZ(structureLitematic); reprocessAndRender(); });
-           
-           document.getElementById('export-litematic-btn').addEventListener('click', exportCurrentView);
-           document.getElementById('export-nbt-btn').addEventListener('click', () => { 
-               if (!structureLitematic) {
-                   showNotification('No structure loaded', 'error');
-                   return;
-               }
-               const nbtData = convertToNbt(structureLitematic); 
-               downloadNbt(nbtData, 'export.nbt'); 
-           });
-
-           ['origin-x', 'origin-y', 'origin-z'].forEach(id => {
-               const input = document.getElementById(id);
-               input.addEventListener('input', (e) => {
-                   e.target.value = e.target.value.replace(/[^0-9-]/g, '');
-                   regenerateCommands();
-               });
-           });
-           document.getElementById('download-csv-btn').addEventListener('click', () => {
-               const blockCounts = getMaterialList(structureLitematic);
-               downloadMaterialsCSV(blockCounts);
-           });
-        }
-
-        function readFileInput(input) { for (let file of input.files) loadAndProcessFile(file); }
-        function submitFileLink(url) { if (url.trim()) readFileURL(url); }
-        function dragOverHandler(ev) { ev.preventDefault(); ev.currentTarget.classList.add('border-minecraft-green'); }
-        function dropHandler(ev) {
-           ev.preventDefault();
-           ev.currentTarget.classList.remove('border-minecraft-green');
-           if (ev.dataTransfer.items) {
-              for (let item of ev.dataTransfer.items) {
-                 if (item.kind === 'file') loadAndProcessFile(item.getAsFile());
-              }
-           }
-        }
-      </script>
    </body>
 </html>

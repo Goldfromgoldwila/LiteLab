@@ -1,5 +1,10 @@
-// src/viewer.js
-const { mat4, vec3 } = glMatrix;
+import { mat4, vec3 } from 'gl-matrix';
+import * as deepslate from 'deepslate';
+import { getSetting } from './settings.js';
+import { applyBlockHoverEffect } from './block-hover.js';
+import { drawCompass } from './compass.js';
+import { updateNearestBlock } from './nearest-block.js';
+
 var webglContext;
 var deepslateRenderer;
 var projectionMatrix; // This will hold our projection matrix
@@ -11,18 +16,41 @@ var isRendering = false;
 
 // The master flag that controls the render loop
 function setStructure(structure, reset_view=false) {
-    if (!webglContext || !structure) return;
-    deepslateRenderer = new deepslate.StructureRenderer(webglContext, structure, deepslateResources, {chunkSize: 8});
-    if (deepslateRenderer && !deepslateRenderer.options) {
-        console.warn("deepslateRenderer was created without an .options property. Initializing it to an empty object.");
-        deepslateRenderer.options = {};
+    if (!webglContext || !structure || !window.deepslateResources) {
+        console.error('Missing requirements for setStructure:', { 
+            webglContext: !!webglContext, 
+            structure: !!structure, 
+            deepslateResources: !!window.deepslateResources
+        });
+        return;
     }
-    if (reset_view) {
+    
+    // Dispose of previous renderer to prevent memory leaks
+    if (deepslateRenderer) {
+        if (deepslateRenderer.dispose) {
+            deepslateRenderer.dispose();
+        }
+        deepslateRenderer = null;
+    }
+    
+    try {
+        deepslateRenderer = new deepslate.StructureRenderer(webglContext, structure, window.deepslateResources, {chunkSize: 8});
+        window.deepslateRenderer = deepslateRenderer;
+        if (deepslateRenderer && !deepslateRenderer.options) {
+            deepslateRenderer.options = {};
+        }
+    } catch (error) {
+        console.error('Failed to create renderer:', error);
+        return;
+    }
+    
+    if (reset_view || !cameraPos) {
         cameraPitch = 0.8;
         cameraYaw = 0.5;
         const size = structure.getSize();
-        vec3.set(cameraPos, -size[0] / 2, -size[1] / 2, -size[2] / 2);
+        cameraPos = vec3.fromValues(-size[0] / 2, -size[1] / 2, -size[2] / 2);
     }
+    
     // If the render loop isn't running, start it. This only happens once.
     if (!isRendering) {
         isRendering = true;
@@ -32,7 +60,17 @@ function setStructure(structure, reset_view=false) {
 
 function stopRendering() {
     isRendering = false;
-    deepslateRenderer = null; // Cleanly dispose of the old renderer
+    if (deepslateRenderer) {
+        // Dispose of WebGL resources
+        if (deepslateRenderer.dispose) {
+            deepslateRenderer.dispose();
+        }
+        deepslateRenderer = null;
+    }
+    if (webglContext) {
+        // Clear any remaining WebGL state
+        webglContext.clear(webglContext.COLOR_BUFFER_BIT | webglContext.DEPTH_BUFFER_BIT);
+    }
 }
 
 function render() {
@@ -59,21 +97,27 @@ function render() {
     mat4.translate(view, view, cameraPos);
 
     // Draw the main structure
-    deepslateRenderer.drawStructure(view);
-    
-    if (deepslateRenderer.options.showGrid) {
-        deepslateRenderer.drawGrid(view);
+    if (projectionMatrix) {
+        deepslateRenderer.drawStructure(view, projectionMatrix);
+        
+        if (deepslateRenderer.options.showGrid) {
+            deepslateRenderer.drawGrid(view, projectionMatrix);
+        }
+    } else {
+        // This can happen briefly on the first frame, it's not a critical error.
     }
 
     // Apply the hover effect, passing both the view and projection matrices
-    if (typeof applyBlockHoverEffect === 'function') {
-        applyBlockHoverEffect(webglContext, view, projectionMatrix);
-    }
+    applyBlockHoverEffect(webglContext, view, projectionMatrix);
     
     // Draw compass
-    if (typeof drawCompass === 'function') {
-        drawCompass(webglContext, view, projectionMatrix);
-    }
+    drawCompass(webglContext, view, projectionMatrix);
+    
+    // Update nearest block display
+    const invView = mat4.create();
+    mat4.invert(invView, view);
+    const cameraWorldPos = vec3.fromValues(invView[12], invView[13], invView[14]);
+    updateNearestBlock(cameraWorldPos, view);
 }
 
 function createRenderCanvas() {
@@ -123,18 +167,23 @@ function createRenderCanvas() {
 function setupCameraControls(canvas) {
     const crosshair = document.getElementById('crosshair');
     canvas.addEventListener('click', () => {
-        try {
-            canvas.requestPointerLock();
-        } catch (e) {
-            // Ignore pointer lock errors
+        if (document.pointerLockElement !== canvas) {
+            canvas.style.cursor = 'none';
+            try {
+                canvas.requestPointerLock();
+            } catch (e) {
+                // Ignore pointer lock errors, e.g. in iframes
+            }
         }
     });
     document.addEventListener('pointerlockchange', () => {
         if (document.pointerLockElement === canvas) {
             crosshair.style.display = 'block';
+            canvas.style.cursor = 'none';
             document.addEventListener('mousemove', updateCameraPosition, false);
         } else {
             crosshair.style.display = 'none';
+            canvas.style.cursor = 'pointer';
             document.removeEventListener('mousemove', updateCameraPosition, false);
         }
     });
@@ -204,3 +253,5 @@ function setupCameraControls(canvas) {
         }
     }, 1000/60);
 }
+
+export { createRenderCanvas, setStructure, stopRendering };

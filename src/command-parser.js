@@ -119,3 +119,5 @@ function litematicFromCommands(commandString) {
   
   return litematic;
 }
+
+export { litematicFromCommands };

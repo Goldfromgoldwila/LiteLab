@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%); color: #e2e8f0; margin: 0; padding: 0; overflow-x: hidden; }
+.glass-effect { background: rgba(0, 0, 0, 0.25); backdrop-filter: blur(10px); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.18); }
+#notification-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.notification { padding: 10px 20px; border-radius: 8px; color: white; opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+.notification.show { opacity: 1; transform: translateY(0); }
+.notification.success { background-color: #28a745; }
+.notification.error { background-color: #dc3545; }
+.notification.info { background-color: #17a2b8; }
+#crosshair {
+   position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; 
+   transform: translate(-50%, -50%); pointer-events: none; display: none; z-index: 100;
+}
+#crosshair::before, #crosshair::after {
+   content: ''; position: absolute; background-color: white;
+}
+#crosshair::before {
+   width: 16px; height: 2px; top: 7px; left: 0;
+}
+#crosshair::after {
+   width: 2px; height: 16px; top: 0; left: 7px;
+}

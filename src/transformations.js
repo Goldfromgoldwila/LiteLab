@@ -291,3 +291,5 @@ function flipZ(litematic) {
     };
     return { ...litematic, regions: [newRegion] };
 }
+
+export { rotateY90, flipX, flipZ };

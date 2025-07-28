@@ -75,3 +75,5 @@ function setupSettingsPanel() {
         }
     }
 }
+
+export { resetSettings, setupSettingsPanel, getSetting };
