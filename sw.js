@@ -1,15 +1,13 @@
 // Service Worker for offline support
 const CACHE_NAME = 'litelab-v1.1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/src/main.js',
-  '/src/style.css',
-  '/resource/atlas.png',
-  '/resource/assets.js',
-  '/resource/opaque.js',
-  '/icon.png',
-  '/logo.png'
+  './',
+  './index.html',
+  './src/main.js',
+  './src/style.css',
+  './resource/atlas.png',
+  './resource/assets.js',
+  './resource/opaque.js'
 ];
 
 self.addEventListener('activate', (event) => {

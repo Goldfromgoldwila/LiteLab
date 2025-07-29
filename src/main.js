@@ -593,7 +593,8 @@ function initializeUI() {
 document.addEventListener("DOMContentLoaded", () => {
     // Register service worker for offline support
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
+        const swPath = import.meta.env.BASE_URL + 'sw.js';
+        navigator.serviceWorker.register(swPath)
             .catch(error => console.warn('SW registration failed:', error));
     }
 
