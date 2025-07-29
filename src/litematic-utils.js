@@ -36,7 +36,6 @@ function readLitematicFromNBTData(nbtdata) {
     // BUG FIX: Normalize the blockData array if it's flat (from AI)
     let normalizedBlockData = blockData;
     if (blockData.length > 0 && !Array.isArray(blockData[0])) {
-      console.log("Detected flat longArray, normalizing...");
       normalizedBlockData = [];
       for (let i = 0; i < blockData.length; i += 2) {
         // The parser expects pairs of [high_bits, low_bits].
@@ -184,7 +183,7 @@ function getMaterialList(litematic) {
   return blockCounts;
 }
 
-function generateSetblockCommands(litematic, origin = [0, 0, 0]) {
+function generateSetblockCommands(litematic, origin = [0, 0, 0], materialFilter = null) {
   const commands = [];
   const [originX, originY, originZ] = origin;
   
@@ -202,10 +201,28 @@ function generateSetblockCommands(litematic, origin = [0, 0, 0]) {
           if (blockID > 0 && blockID < blockPalette.length) {
             const blockInfo = blockPalette[blockID];
             const blockName = blockInfo.Name.replace(/^minecraft:/, '');
+            const fullBlockName = `minecraft:${blockName}`;
+            
+            // Filter by selected materials if specified
+            if (materialFilter && !materialFilter.includes(fullBlockName)) {
+              continue;
+            }
+            
             const worldX = originX + x;
             const worldY = originY + y;
             const worldZ = originZ + z;
-            commands.push(`/setblock ${worldX} ${worldY} ${worldZ} minecraft:${blockName}`);
+            
+            let command = `/setblock ${worldX} ${worldY} ${worldZ} minecraft:${blockName}`;
+            
+            // Add block properties if they exist
+            if (blockInfo.Properties && Object.keys(blockInfo.Properties).length > 0) {
+              const properties = Object.entries(blockInfo.Properties)
+                .map(([key, value]) => `${key}=${value}`)
+                .join(',');
+              command += `[${properties}]`;
+            }
+            
+            commands.push(command);
           }
         }
       }

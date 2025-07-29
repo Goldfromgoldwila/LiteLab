@@ -30,7 +30,10 @@ function litematicFromCommands(commandString) {
       });
     }
 
-    parsedBlocks.push({ x, y, z, Name: name, Properties: properties });
+    // Add default properties for blocks that require them
+    const defaultProperties = getDefaultProperties(name);
+    const finalProperties = { ...defaultProperties, ...properties };
+    parsedBlocks.push({ x, y, z, Name: name, Properties: finalProperties });
   }
   
   // --- Pass 2: Parse /fill commands ---
@@ -56,7 +59,10 @@ function litematicFromCommands(commandString) {
       for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
           for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
               for (let z = Math.min(z1, z2); z <= Math.max(z1, z2); z++) {
-                  parsedBlocks.push({ x, y, z, Name: name, Properties: properties });
+                  // Add default properties for blocks that require them
+                  const defaultProperties = getDefaultProperties(name);
+                  const finalProperties = { ...defaultProperties, ...properties };
+                  parsedBlocks.push({ x, y, z, Name: name, Properties: finalProperties });
               }
           }
       }
@@ -93,7 +99,8 @@ function litematicFromCommands(commandString) {
 
     if (paletteIndex === undefined) {
       paletteIndex = blockPalette.length;
-      blockPalette.push({ Name: block.Name, Properties: block.Properties });
+      const blockName = block.Name.startsWith('minecraft:') ? block.Name : `minecraft:${block.Name}`;
+      blockPalette.push({ Name: blockName, Properties: block.Properties });
       paletteMap.set(paletteKey, paletteIndex);
     }
     
@@ -118,6 +125,78 @@ function litematicFromCommands(commandString) {
   };
   
   return litematic;
+}
+
+function getDefaultProperties(blockName) {
+  const defaults = {
+    // Stairs
+    'spruce_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'oak_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'stone_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'cobblestone_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'brick_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'stone_brick_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'nether_brick_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'sandstone_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'red_sandstone_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'birch_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'jungle_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'acacia_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'dark_oak_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'prismarine_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'prismarine_brick_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'dark_prismarine_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'quartz_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    'purpur_stairs': { facing: 'north', half: 'bottom', shape: 'straight' },
+    
+    // Logs
+    'spruce_log': { axis: 'y' },
+    'oak_log': { axis: 'y' },
+    'birch_log': { axis: 'y' },
+    'jungle_log': { axis: 'y' },
+    'acacia_log': { axis: 'y' },
+    'dark_oak_log': { axis: 'y' },
+    'stripped_spruce_log': { axis: 'y' },
+    'stripped_oak_log': { axis: 'y' },
+    'stripped_birch_log': { axis: 'y' },
+    'stripped_jungle_log': { axis: 'y' },
+    'stripped_acacia_log': { axis: 'y' },
+    'stripped_dark_oak_log': { axis: 'y' },
+    
+    // Doors
+    'spruce_door': { facing: 'north', half: 'lower', hinge: 'left', open: 'false' },
+    'oak_door': { facing: 'north', half: 'lower', hinge: 'left', open: 'false' },
+    'birch_door': { facing: 'north', half: 'lower', hinge: 'left', open: 'false' },
+    'jungle_door': { facing: 'north', half: 'lower', hinge: 'left', open: 'false' },
+    'acacia_door': { facing: 'north', half: 'lower', hinge: 'left', open: 'false' },
+    'dark_oak_door': { facing: 'north', half: 'lower', hinge: 'left', open: 'false' },
+    'iron_door': { facing: 'north', half: 'lower', hinge: 'left', open: 'false' },
+    
+    // Slabs
+    'spruce_slab': { type: 'bottom' },
+    'oak_slab': { type: 'bottom' },
+    'stone_slab': { type: 'bottom' },
+    'cobblestone_slab': { type: 'bottom' },
+    'brick_slab': { type: 'bottom' },
+    'stone_brick_slab': { type: 'bottom' },
+    'nether_brick_slab': { type: 'bottom' },
+    'sandstone_slab': { type: 'bottom' },
+    'red_sandstone_slab': { type: 'bottom' },
+    
+    // Torches
+    'wall_torch': { facing: 'north' },
+    'redstone_wall_torch': { facing: 'north', lit: 'true' },
+    
+    // Signs
+    'spruce_wall_sign': { facing: 'north' },
+    'oak_wall_sign': { facing: 'north' },
+    
+    // Lanterns
+    'lantern': { hanging: 'false' },
+    'soul_lantern': { hanging: 'false' }
+  };
+  
+  return defaults[blockName] || {};
 }
 
 export { litematicFromCommands };

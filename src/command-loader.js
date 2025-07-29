@@ -10,7 +10,9 @@ function handleCommandDataLoad() {
     const rawString = dataInput.value.trim();
 
     if (!rawString) {
-        alert('Please paste /setblock commands into the text area.');
+        if (typeof window.showNotification === 'function') {
+            window.showNotification('Please paste /setblock commands into the text area.', 'error');
+        }
         return;
     }
 
@@ -19,7 +21,7 @@ function handleCommandDataLoad() {
             throw new Error("Input does not contain any /setblock commands.");
         }
 
-        console.log("Detected command input. Parsing as commands...");
+        // Detected command input. Parsing as commands...
         const schematicName = 'From Commands';
         const litematic = litematicFromCommands(rawString);
 

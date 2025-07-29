@@ -10,6 +10,10 @@ import { handleCommandDataLoad } from './command-loader.js';
 import { rotateY90, flipX, flipZ } from './transformations.js';
 import { exportLitematicView, exportNBTView } from './exporter.js';
 import { initializeEditMode } from './edit-mode.js';
+import { Minimap } from './minimap.js';
+import { ANIMATION_CONSTANTS, FILE_CONSTANTS } from './constants.js';
+import './error-boundary.js';
+import { initializeBlockSearchReplace, openReplaceDialog } from './block-search-replace.js';
 
 // Make deepslate globally available
 window.deepslate = deepslate;
@@ -32,6 +36,7 @@ window.AppState = AppState;
 window.reprocessAndRender = reprocessAndRender;
 window.processLoadedLitematic = processLoadedLitematic;
 window.showNotification = showNotification;
+window.openReplaceDialog = openReplaceDialog;
 window.readFileInput = function(input) {
     if (input.files) {
         for (let file of input.files) loadAndProcessFile(file);
@@ -114,6 +119,9 @@ function resetAppView() {
         blockCoords.classList.add('hidden');
     }
 
+    // Hide minimap
+    window.minimap.hide();
+
     // Cleanly stop the render loop and remove the canvas
     stopRendering();
     const viewer = document.getElementById('viewer');
@@ -123,7 +131,6 @@ function resetAppView() {
         window.removeEventListener('resize', window.resizeHandler);
         window.resizeHandler = null;
     }
-    webglContext = null;
     AppState.structureLitematic = null;
     AppState.highlightedBlockNames.clear();
     showNotification('Ready to load a new schematic.', 'info');
@@ -134,8 +141,8 @@ function resetAppView() {
  */
 function renderFilteredStructure() {
     if (!AppState.structureLitematic) return;
-    const y_min = parseInt(document.getElementById('miny-slider').value);
-    const y_max = parseInt(document.getElementById('maxy-slider').value);
+    const y_min = parseInt(document.getElementById('minYSlider').value);
+    const y_max = parseInt(document.getElementById('maxYSlider').value);
     
     if (y_min > y_max || y_max === 0) {
         setStructure(new window.deepslate.Structure([0,0,0]), false);
@@ -212,13 +219,17 @@ function processLoadedLitematic(litematic, schematicName) {
         const blockCounts = getMaterialList(AppState.structureLitematic);
         createMaterialsList(blockCounts);
         regenerateCommands();
+        
+        // Initialize minimap
+        window.minimap.updateStructure(AppState.structureLitematic);
+        
         showNotification('Schematic loaded successfully!', 'success');
     } catch(error) {
         console.error('Error processing schematic:', error);
         const errorMsg = error.message.includes('structure') ? 'Invalid structure format' :
                         error.message.includes('block') ? 'Missing or corrupted block data' :
                         error.message.includes('dimensions') ? 'Structure has invalid dimensions' :
-                        `Processing error: ${error.message}`;
+                        'Failed to process structure file';
         showNotification(errorMsg, 'error');
         resetAppView();
     }
@@ -232,6 +243,11 @@ function loadAndProcessFile(file) {
    
    if (!file.name.endsWith('.litematic') && !file.name.endsWith('.nbt')) {
       showNotification('Please select a .litematic or .nbt file', 'error');
+      return;
+   }
+   
+   if (file.size > FILE_CONSTANTS.MAX_FILE_SIZE) {
+      showNotification(`File too large. Maximum size is ${FILE_CONSTANTS.MAX_FILE_SIZE / (1024 * 1024)}MB`, 'error');
       return;
    }
    
@@ -270,7 +286,7 @@ function loadAndProcessFile(file) {
          console.error('Error processing file:', error);
          const errorMsg = error.message.includes('NBT') ? 'Invalid file format' : 
                          error.message.includes('regions') ? 'No structure data found in file' :
-                         `Error loading file: ${error.message}`;
+                         'Failed to load file';
          showNotification(errorMsg, 'error');
          resetAppView();
       }
@@ -296,9 +312,27 @@ function createMaterialsList(blockCounts) {
       const item = document.createElement('div');
       const isHighlighted = AppState.highlightedBlockNames.has(blockName);
       item.className = `flex justify-between items-center p-2 rounded-lg text-sm cursor-pointer transition-colors ${isHighlighted ? 'bg-blue-100 border border-blue-200' : 'bg-white hover:bg-slate-50 border border-slate-200'}`;
-      item.innerHTML = `<span class="${isHighlighted ? 'text-blue-800' : 'text-slate-700'} font-medium">${blockName.replace('minecraft:', '').replace(/_/g, ' ')}</span><span class="${isHighlighted ? 'text-blue-600' : 'text-slate-500'} text-xs font-semibold bg-slate-100 px-2 py-1 rounded">${count}</span>`;
+      item.innerHTML = `
+         <div class="flex justify-between items-center group">
+            <span class="${isHighlighted ? 'text-blue-800' : 'text-slate-700'} font-medium flex-1">${blockName.replace('minecraft:', '').replace(/_/g, ' ')}</span>
+            <div class="flex items-center space-x-3">
+               <span class="${isHighlighted ? 'text-blue-600 bg-blue-50' : 'text-slate-500 bg-slate-100'} text-xs font-bold px-3 py-1.5 rounded-full min-w-[2.5rem] text-center">${count}</span>
+               <button class="replace-block-btn text-xs px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md" data-block-name="${blockName}" title="Replace ${blockName.replace('minecraft:', '').replace(/_/g, ' ')}">🔄 Replace</button>
+            </div>
+         </div>
+      `;
       
-      item.addEventListener('click', () => {
+      item.addEventListener('click', (e) => {
+          // Don't trigger highlight if replace button was clicked
+          if (e.target.classList.contains('replace-block-btn')) {
+              e.stopPropagation();
+              const blockName = e.target.dataset.blockName;
+              if (window.openReplaceDialog) {
+                  window.openReplaceDialog(blockName);
+              }
+              return;
+          }
+          
           if (AppState.highlightedBlockNames.has(blockName)) {
               AppState.highlightedBlockNames.delete(blockName);
           } else {
@@ -306,6 +340,7 @@ function createMaterialsList(blockCounts) {
           }
           createMaterialsList(blockCounts);
           renderFilteredStructure();
+          regenerateCommands();
       });
 
       materialList.appendChild(item);
@@ -315,10 +350,25 @@ function createMaterialsList(blockCounts) {
 
 function regenerateCommands() {
     if (!AppState.structureLitematic) return;
-    const originX = parseInt(document.getElementById('origin-x').value) || 0;
-    const originY = parseInt(document.getElementById('origin-y').value) || 0;
-    const originZ = parseInt(document.getElementById('origin-z').value) || 0;
-    const commands = generateSetblockCommands(AppState.structureLitematic, [originX, originY, originZ]);
+    const originX = parseInt(document.getElementById('originX').value) || 0;
+    const originY = parseInt(document.getElementById('originY').value) || 0;
+    const originZ = parseInt(document.getElementById('originZ').value) || 0;
+    
+    // Filter commands by selected materials if any are highlighted
+    const selectedMaterials = AppState.highlightedBlockNames.size > 0 ? Array.from(AppState.highlightedBlockNames) : null;
+    const commands = generateSetblockCommands(AppState.structureLitematic, [originX, originY, originZ], selectedMaterials);
+    
+    // Update selected materials display
+    const selectedMaterialsInfo = document.getElementById('selected-materials-info');
+    const selectedMaterialsList = document.getElementById('selected-materials-list');
+    
+    if (selectedMaterials && selectedMaterials.length > 0) {
+        selectedMaterialsInfo.classList.remove('hidden');
+        selectedMaterialsList.textContent = selectedMaterials.map(name => name.replace('minecraft:', '').replace(/_/g, ' ')).join(', ');
+    } else {
+        selectedMaterialsInfo.classList.add('hidden');
+    }
+    
     document.getElementById('command-output-textarea').value = commands.join('\n');
     document.getElementById('command-output-section').classList.remove('hidden');
 }
@@ -347,8 +397,8 @@ function exportCurrentView() {
 function createRangeSliders(max_y) {
    const layerControls = document.getElementById('layer-controls');
    layerControls.classList.remove('hidden');
-   const minSlider = document.getElementById('miny-slider'), maxSlider = document.getElementById('maxy-slider');
-   const minValue = document.getElementById('miny-value'), maxValue = document.getElementById('maxy-value');
+   const minSlider = document.getElementById('minYSlider'), maxSlider = document.getElementById('maxYSlider');
+   const minValue = document.getElementById('minYValue'), maxValue = document.getElementById('maxYValue');
    
    const sliderMax = max_y > 0 ? max_y : 0;
    minSlider.min = 0;
@@ -359,13 +409,19 @@ function createRangeSliders(max_y) {
    minValue.textContent = minSlider.value;
    maxValue.textContent = maxSlider.value;
 
+   let debounceTimer;
+   const debouncedRender = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(renderFilteredStructure, 100);
+   };
+   
    minSlider.addEventListener('input', (e) => {
       minValue.textContent = e.target.value;
-      renderFilteredStructure();
+      debouncedRender();
    });
    maxSlider.addEventListener('input', (e) => {
       maxValue.textContent = e.target.value;
-      renderFilteredStructure();
+      debouncedRender();
    });
 }
 
@@ -375,11 +431,11 @@ function showNotification(message, type = 'info') {
     notification.className = `notification ${type}`;
     notification.textContent = message;
     container.appendChild(notification);
-    setTimeout(() => notification.classList.add('show'), 10);
+    setTimeout(() => notification.classList.add('show'), ANIMATION_CONSTANTS.SETTINGS_TRANSITION_DELAY);
     setTimeout(() => {
         notification.classList.remove('show');
         notification.addEventListener('transitionend', () => notification.remove());
-    }, 3000);
+    }, ANIMATION_CONSTANTS.NOTIFICATION_DURATION);
 }
 
 function initializeUI() {
@@ -458,12 +514,25 @@ function initializeUI() {
     });
 
     function saveTransformState() {
-        AppState.transformHistory.push(JSON.parse(JSON.stringify(AppState.structureLitematic)));
-        if (AppState.transformHistory.length > 10) {
+        // Store only essential data to reduce memory usage
+        const snapshot = {
+            regions: AppState.structureLitematic.regions.map(region => ({
+                width: region.width,
+                height: region.height,
+                depth: region.depth,
+                blocks: region.blocks,
+                blockPalette: region.blockPalette
+            }))
+        };
+        AppState.transformHistory.push(snapshot);
+        if (AppState.transformHistory.length > 5) { // Reduced from 10 to 5
             AppState.transformHistory.shift();
         }
         document.getElementById('undo-transform-btn').classList.remove('hidden');
     }
+    
+    // Make saveTransformState globally available for block replace
+    window.saveTransformState = saveTransformState;
     
     document.getElementById('rotate-btn').addEventListener('click', () => { 
         saveTransformState(); 
@@ -501,10 +570,16 @@ function initializeUI() {
     
     // Edit mode initialization is handled by initializeEditMode()
     
-    ['origin-x', 'origin-y', 'origin-z'].forEach(id => {
+    ['originX', 'originY', 'originZ'].forEach(id => {
         const input = document.getElementById(id);
         input.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/[^0-9-]/g, '');
+            const value = e.target.value.replace(/[^0-9-]/g, '');
+            const numValue = parseInt(value);
+            if (value !== '' && (isNaN(numValue) || numValue < -30000000 || numValue > 30000000)) {
+                e.target.value = e.target.value.slice(0, -1);
+                return;
+            }
+            e.target.value = value;
             regenerateCommands();
         });
     });
@@ -516,11 +591,15 @@ function initializeUI() {
 
 // App Initialization
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM loaded, initializing app...");
-    console.log('Assets available:', !!window.assets);
-    console.log('OPAQUE_BLOCKS available:', !!window.OPAQUE_BLOCKS);
+    // Register service worker for offline support
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .catch(error => console.warn('SW registration failed:', error));
+    }
+
     initializeUI();
     initializeEditMode();
+    initializeBlockSearchReplace();
     
     const image = document.getElementById('atlas');
     let resourcesLoaded = false;
@@ -534,7 +613,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (resources) {
                     window.deepslateResources = resources;
                     resourcesLoaded = true;
-                    console.log('Deepslate resources loaded successfully');
+                    // Deepslate resources loaded successfully
                 }
             } catch (error) {
                 console.error('Failed to load deepslate resources:', error);

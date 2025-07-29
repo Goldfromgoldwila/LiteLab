@@ -4,6 +4,7 @@ import { getSetting } from './settings.js';
 import { applyBlockHoverEffect } from './block-hover.js';
 import { drawCompass } from './compass.js';
 import { updateNearestBlock } from './nearest-block.js';
+import { RENDER_CONSTANTS } from './constants.js';
 
 var webglContext;
 var deepslateRenderer;
@@ -11,8 +12,12 @@ var projectionMatrix; // This will hold our projection matrix
 var cameraPitch;
 var cameraYaw;
 var cameraPos;
+var structureBounds = null;
 var resizeHandler = null;
 var isRendering = false;
+var movementInterval = null;
+var lastFrameTime = 0;
+var frameRequested = false;
 
 // The master flag that controls the render loop
 function setStructure(structure, reset_view=false) {
@@ -34,7 +39,7 @@ function setStructure(structure, reset_view=false) {
     }
     
     try {
-        deepslateRenderer = new deepslate.StructureRenderer(webglContext, structure, window.deepslateResources, {chunkSize: 8});
+        deepslateRenderer = new deepslate.StructureRenderer(webglContext, structure, window.deepslateResources, {chunkSize: RENDER_CONSTANTS.CHUNK_SIZE});
         window.deepslateRenderer = deepslateRenderer;
         if (deepslateRenderer && !deepslateRenderer.options) {
             deepslateRenderer.options = {};
@@ -49,17 +54,33 @@ function setStructure(structure, reset_view=false) {
         cameraYaw = 0.5;
         const size = structure.getSize();
         cameraPos = vec3.fromValues(-size[0] / 2, -size[1] / 2, -size[2] / 2);
+        
+        // Set structure bounds for camera constraints
+        const padding = RENDER_CONSTANTS.CAMERA_PADDING;
+        structureBounds = {
+            minX: -size[0] - padding,
+            maxX: padding,
+            minY: -size[1] - padding,
+            maxY: padding,
+            minZ: -size[2] - padding,
+            maxZ: padding
+        };
     }
     
     // If the render loop isn't running, start it. This only happens once.
     if (!isRendering) {
         isRendering = true;
-        render();
+        requestFrame();
     }
 }
 
 function stopRendering() {
     isRendering = false;
+    frameRequested = false;
+    if (movementInterval) {
+        clearInterval(movementInterval);
+        movementInterval = null;
+    }
     if (deepslateRenderer) {
         // Dispose of WebGL resources
         if (deepslateRenderer.dispose) {
@@ -76,8 +97,14 @@ function stopRendering() {
 function render() {
     // If the master flag is false, stop the loop immediately.
     if (!isRendering) return;
-    // Continue the loop for the next frame.
-    requestAnimationFrame(render);
+    
+    frameRequested = false;
+    const currentTime = performance.now();
+    if (currentTime - lastFrameTime < 16) { // 60fps limit
+        requestFrame();
+        return;
+    }
+    lastFrameTime = currentTime;
     if (!webglContext) return;
     // Update camera angles from user input
     cameraYaw = cameraYaw % (Math.PI * 2);
@@ -90,7 +117,7 @@ function render() {
     webglContext.blendFunc(webglContext.SRC_ALPHA, webglContext.ONE_MINUS_SRC_ALPHA);
     // The definitive guard clause. It is now impossible to crash here.
     if (!deepslateRenderer) return;
-    deepslateRenderer.options.showGrid = getSetting('show-grid', true);
+    deepslateRenderer.options.showGrid = getSetting('showGrid', true);
     const view = mat4.create();
     mat4.rotateX(view, view, cameraPitch);
     mat4.rotateY(view, view, cameraYaw);
@@ -118,6 +145,25 @@ function render() {
     mat4.invert(invView, view);
     const cameraWorldPos = vec3.fromValues(invView[12], invView[13], invView[14]);
     updateNearestBlock(cameraWorldPos, view);
+    
+    // Update minimap camera position
+    if (window.minimap) {
+        const cameraDir = vec3.fromValues(
+            Math.sin(cameraYaw) * Math.cos(cameraPitch),
+            -Math.sin(cameraPitch),
+            Math.cos(cameraYaw) * Math.cos(cameraPitch)
+        );
+        window.minimap.updateCameraPosition(cameraWorldPos, cameraDir);
+    }
+    
+    requestFrame();
+}
+
+function requestFrame() {
+    if (!frameRequested && isRendering) {
+        frameRequested = true;
+        requestAnimationFrame(render);
+    }
 }
 
 function createRenderCanvas() {
@@ -136,6 +182,22 @@ function createRenderCanvas() {
         console.error('WebGL not supported');
         return;
     }
+    
+    // Handle WebGL context loss
+    canvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();
+        isRendering = false;
+        if (window.showNotification) {
+            window.showNotification('Graphics context lost. Please refresh the page.', 'error');
+        }
+    });
+    
+    canvas.addEventListener('webglcontextrestored', () => {
+        if (window.showNotification) {
+            window.showNotification('Graphics context restored.', 'success');
+        }
+        // Reinitialize WebGL state if needed
+    });
     cameraPitch = 0.8;
     cameraYaw = 0.5;
     cameraPos = vec3.create();
@@ -188,22 +250,37 @@ function setupCameraControls(canvas) {
         }
     });
     function updateCameraPosition(e) {
-        const mouseSensitivity = getSetting('mouse-sensitivity', 1);
-        const invertControls = getSetting('invert-controls', false);
+        const mouseSensitivity = getSetting('mouseSensitivity', 1);
+        const invertControls = getSetting('invertControls', false);
         const multiplier = invertControls ? -1 : 1;
         cameraYaw += (e.movementX / 200) * mouseSensitivity;
         cameraPitch += (e.movementY / 200) * mouseSensitivity * multiplier;
     }
     canvas.addEventListener('wheel', evt => {
         evt.preventDefault();
-        const movementSpeed = getSetting('movement-speed', 0.2);
+        const movementSpeed = getSetting('movementSpeed', 0.2);
         let zoomDirection = vec3.fromValues(0, 0, 1);
         vec3.rotateX(zoomDirection, zoomDirection, [0,0,0], -cameraPitch);
         vec3.rotateY(zoomDirection, zoomDirection, [0,0,0], -cameraYaw);
-        vec3.scaleAndAdd(cameraPos, cameraPos, zoomDirection, evt.deltaY / 200 * movementSpeed * 5);
+        const newPos = vec3.create();
+        vec3.scaleAndAdd(newPos, cameraPos, zoomDirection, evt.deltaY / 200 * movementSpeed * 5);
+        
+        // Constrain zoom within bounds
+        if (structureBounds) {
+            newPos[0] = Math.max(structureBounds.minX, Math.min(structureBounds.maxX, newPos[0]));
+            newPos[1] = Math.max(structureBounds.minY, Math.min(structureBounds.maxY, newPos[1]));
+            newPos[2] = Math.max(structureBounds.minZ, Math.min(structureBounds.maxZ, newPos[2]));
+        }
+        
+        vec3.copy(cameraPos, newPos);
     });
     let pressedKeys = new Set();
     document.addEventListener('keydown', evt => {
+        // Don't capture keys when user is typing in input fields
+        if (evt.target.tagName === 'INPUT' || evt.target.tagName === 'TEXTAREA' || evt.target.isContentEditable) {
+            return;
+        }
+        
         if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft'].includes(evt.code)) {
             evt.preventDefault();
             pressedKeys.add(evt.code);
@@ -218,12 +295,16 @@ function setupCameraControls(canvas) {
         }
     });
     document.addEventListener('keyup', evt => {
+        // Don't process keyup if user is typing in input fields
+        if (evt.target.tagName === 'INPUT' || evt.target.tagName === 'TEXTAREA' || evt.target.isContentEditable) {
+            return;
+        }
         pressedKeys.delete(evt.code);
     });
     window.addEventListener('blur', () => pressedKeys.clear());
-    setInterval(() => {
+    movementInterval = setInterval(() => {
         if (pressedKeys.size === 0) return;
-        const movementSpeed = parseFloat(getSetting('movement-speed', 0.2));
+        const movementSpeed = parseFloat(getSetting('movementSpeed', 0.2));
         let horizontalDirection = vec3.create();
         if (pressedKeys.has('KeyW')) {
             horizontalDirection[2] += 1;
@@ -248,8 +329,20 @@ function setupCameraControls(canvas) {
             if (vec3.length(horizontalDirection) > 0) vec3.normalize(horizontalDirection, horizontalDirection);
             vec3.scale(horizontalDirection, horizontalDirection, movementSpeed);
             vec3.rotateY(horizontalDirection, horizontalDirection, [0, 0, 0], -cameraYaw);
-            vec3.add(cameraPos, cameraPos, horizontalDirection);
-            cameraPos[1] += verticalMovement * movementSpeed;
+            
+            // Apply movement with boundary constraints
+            const newPos = vec3.create();
+            vec3.add(newPos, cameraPos, horizontalDirection);
+            newPos[1] += verticalMovement * movementSpeed;
+            
+            // Constrain camera within structure bounds
+            if (structureBounds) {
+                newPos[0] = Math.max(structureBounds.minX, Math.min(structureBounds.maxX, newPos[0]));
+                newPos[1] = Math.max(structureBounds.minY, Math.min(structureBounds.maxY, newPos[1]));
+                newPos[2] = Math.max(structureBounds.minZ, Math.min(structureBounds.maxZ, newPos[2]));
+            }
+            
+            vec3.copy(cameraPos, newPos);
         }
     }, 1000/60);
 }

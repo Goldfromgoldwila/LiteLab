@@ -106,7 +106,7 @@ function structureFromLitematic(litematic, y_min=0, y_max=-1, filterBlockNames =
         if (blockID > 0) {
           if(blockID < blockPalette.length) {
             const blockInfo = blockPalette[blockID];
-            const blockFullName = `minecraft:${blockInfo.Name.replace(/^minecraft:/, '')}`;
+            const blockFullName = blockInfo.Name.startsWith('minecraft:') ? blockInfo.Name : `minecraft:${blockInfo.Name}`;
 
             // Handle filtering
             if (filterBlockNames && !filterBlockNames.includes(blockFullName)) {
@@ -114,7 +114,7 @@ function structureFromLitematic(litematic, y_min=0, y_max=-1, filterBlockNames =
             }
 
             blockCount++;
-            structure.addBlock([x, y, z], blockInfo.Name, blockInfo.Properties);
+            structure.addBlock([x, y, z], blockFullName, blockInfo.Properties);
           } else {
             structure.addBlock([x, y, z], "minecraft:cake");
           }

@@ -1,6 +1,6 @@
 // src/settings.js
 
-const settingsToSave = ['mouse-sensitivity', 'movement-speed', 'invert-controls', 'show-grid', 'show-block-border'];
+const settingsToSave = ['mouseSensitivity', 'movementSpeed', 'invertControls', 'showGrid', 'showBlockBorder'];
 
 function getSetting(id, defaultValue) {
     const element = document.getElementById(id);
@@ -11,17 +11,22 @@ function getSetting(id, defaultValue) {
 }
 
 function saveSettings() {
-    const settings = {};
-    for (const id of settingsToSave) {
-        settings[id] = getSetting(id);
+    try {
+        const settings = {};
+        for (const id of settingsToSave) {
+            settings[id] = getSetting(id);
+        }
+        localStorage.setItem('litematicViewerSettings', JSON.stringify(settings));
+    } catch (error) {
+        console.warn('Failed to save settings:', error);
     }
-    localStorage.setItem('litematicViewerSettings', JSON.stringify(settings));
 }
 
 function loadSettings() {
-    const saved = localStorage.getItem('litematicViewerSettings');
-    if (!saved) return;
-    const settings = JSON.parse(saved);
+    try {
+        const saved = localStorage.getItem('litematicViewerSettings');
+        if (!saved) return;
+        const settings = JSON.parse(saved);
 
     for (const id of settingsToSave) {
         const element = document.getElementById(id);
@@ -33,25 +38,28 @@ function loadSettings() {
                 element.value = value;
             }
             // Update associated value display if it exists
-            const valueDisplay = document.getElementById(`${id}-value`);
+            const valueDisplay = document.getElementById(`${id}Value`);
             if (valueDisplay) {
                 valueDisplay.textContent = parseFloat(value).toFixed(1);
             }
         }
     }
+    } catch (error) {
+        console.warn('Failed to load settings:', error);
+    }
 }
 
 function resetSettings() {
     // Set default values
-    document.getElementById('mouse-sensitivity').value = 0.8;
-    document.getElementById('movement-speed').value = 0.2;
-    document.getElementById('invert-controls').checked = false;
-    document.getElementById('show-grid').checked = true;
-    document.getElementById('show-block-border').checked = true;
+    document.getElementById('mouseSensitivity').value = 0.8;
+    document.getElementById('movementSpeed').value = 0.2;
+    document.getElementById('invertControls').checked = false;
+    document.getElementById('showGrid').checked = true;
+    document.getElementById('showBlockBorder').checked = true;
 
     // Update displays
-    document.getElementById('mouse-sensitivity-value').textContent = '0.8';
-    document.getElementById('movement-speed-value').textContent = '0.2';
+    document.getElementById('mouseSensitivityValue').textContent = '0.8';
+    document.getElementById('movementSpeedValue').textContent = '0.2';
     
     saveSettings(); // Persist the reset settings
     showNotification('Settings have been reset to default.', 'info');
@@ -66,7 +74,7 @@ function setupSettingsPanel() {
         if (element) {
             element.addEventListener('input', () => {
                 // Update value display for sliders
-                const valueDisplay = document.getElementById(`${id}-value`);
+                const valueDisplay = document.getElementById(`${id}Value`);
                 if (valueDisplay) {
                     valueDisplay.textContent = parseFloat(element.value).toFixed(1);
                 }

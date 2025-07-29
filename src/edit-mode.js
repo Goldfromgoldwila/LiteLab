@@ -2,7 +2,9 @@
 
 let isEditMode = false;
 let brokenBlocks = [];
-let maxEditHistory = 50;
+import { EDIT_CONSTANTS } from './constants.js';
+
+let maxEditHistory = EDIT_CONSTANTS.MAX_EDIT_HISTORY;
 
 // This function needs access to a global re-render function
 // In a larger app, this would be handled with a state manager or event bus
@@ -20,7 +22,6 @@ function updateUndoButtonVisibility() {
 }
 
 function toggleEditMode() {
-    console.log('Toggle edit mode called');
     isEditMode = !isEditMode;
     const editBtn = document.getElementById('edit-btn');
     const viewer = document.getElementById('viewer');

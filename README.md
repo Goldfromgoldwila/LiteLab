@@ -1,139 +1,237 @@
 # LiteLab
 
-LiteLab is a developer-oriented, web-based Minecraft litematic viewer and editor focused on .litematic file manipulation and visualization. It addresses various challenges faced during Minecraft structure development, providing full lifecycle management capabilities from loading, editing, filtering, to exporting.
+LiteLab is a powerful, web-based Minecraft structure viewer and editor that provides comprehensive manipulation capabilities for `.litematic` files, NBT structures, and Minecraft commands. Built with modern web technologies, it offers real-time 3D visualization, advanced editing features, and seamless format conversion.
 
-Based on modern web technologies, LiteLab introduces a comprehensive solution that offers developers free access to advanced litematic manipulation features. By leveraging cutting-edge 3D rendering and intuitive user interfaces, developers can customize and extend according to project needs, facilitating community collaboration and knowledge sharing in Minecraft development.
+## ✨ Features
 
-## What can LiteLab do?
+### 📁 File Support
+- **Litematic Files** (`.litematic`) - Full support for Litematica mod format
+- **NBT Files** (`.nbt`) - JSON-formatted NBT structure data
+- **Minecraft Commands** - `/setblock` and `/fill` command parsing
+- **Drag & Drop** - Intuitive file loading interface
 
-LiteLab helps developers efficiently work with Minecraft litematic by providing comprehensive manipulation capabilities. Whether it's structure visualization, block-level editing, or format conversion, LiteLab offers powerful tools and intelligent support, significantly simplifying the litematic development process and improving workflow efficiency.
+### 🎮 3D Visualization
+- **Interactive Camera Controls** - WASD movement, mouse look, scroll zoom
+- **Block Textures** - Authentic Minecraft block textures
+- **Compass Navigation** - Directional compass overlay
+- **Grid Display** - Optional coordinate grid system
+- **Block Hover Effects** - Highlight blocks under cursor
 
-- **Structure Visualization**: LiteLab's 3D rendering module provides developers with real-time interactive visualization of .litematic files, enabling intuitive exploration and analysis of complex structures with WebGL-powered graphics.
-- **Advanced Filtering**: LiteLab's filtering system provides developers with multi-dimensional structure analysis capabilities, enabling layer-based and block-type filtering for precise structure examination and modification.
-- **Export & Conversion**: LiteLab provides developers with versatile export capabilities for the full structure processing workflow, supporting multiple output formats including .litematic, JSON, CSV, and Minecraft commands.
+### 🔧 Editing & Transformation
+- **Edit Mode** - Interactive block breaking and placement
+- **Structure Transformations** - Rotate (Y-axis), Flip (X/Z axes)
+- **Undo System** - Multi-level undo for transformations and edits
+- **Layer Filtering** - Y-level range sliders for layer-by-layer analysis
+- **Block Highlighting** - Click materials to highlight in 3D view
 
-## Feature List
+### 📊 Analysis Tools
+- **Material Lists** - Complete block count analysis
+- **Block Information** - Real-time block details on hover
+- **Coordinate Display** - Precise block positioning
+- **Statistics** - Total and visible block counts
 
-| Module | Function |
-|--------|----------|
-| **File Loading** | • Drag & drop .litematic files<br>• Command import from /setblock and /fill<br>• Real-time file validation |
-| **3D Visualization** | • Interactive WebGL rendering<br>• Camera controls (WASD + mouse)<br>• Block texture mapping |
-| **Filtering & Analysis** | • Layer range filtering (Y-level sliders)<br>• Block type highlighting<br>• Material count analysis |
-| **Editing** | • Block breaking in edit mode<br>• Structure transformations (rotate/flip)<br>• Undo/redo functionality |
-| **Export** | • .litematic file export<br>• JSON structure data<br>• CSV material lists<br>• Minecraft command generation |
+### 💾 Export Options
+- **NBT Export** - Export as JSON-formatted NBT data
+- **CSV Export** - Material lists for external analysis
+- **Command Generation** - Generate `/setblock` commands with custom origins
 
-## Quick Start
+### ⚙️ Customization
+- **Settings Panel** - Comprehensive configuration options
+- **Camera Settings** - Adjustable sensitivity and movement speed
+- **Display Options** - Toggle grid, hover effects, and overlays
+- **Dark/Light Theme** - Automatic theme switching
+- **Fullscreen Mode** - Immersive viewing experience
 
-Refer to the installation guide below for detailed instructions on how to set up and deploy LiteLab.
+## 🚀 Quick Start
 
-**Environment Requirements:**
-- Modern browser with WebGL support
+### Prerequisites
+- Modern web browser with WebGL support
 - JavaScript enabled
-- Recommended: Chrome, Firefox, Safari, Edge
+- Recommended: Chrome, Firefox, Safari, or Edge
 
-**Operation Steps:**
+### Installation
 
-1. **Get the source code.** Execute the following command to get the latest version of LiteLab.
+1. **Clone the repository**
    ```bash
-   # Clone the code
-   git clone https://github.com/your-repo/litelab.git
-   # Enter the LiteLab directory
-   cd litelab
+   git clone https://github.com/Goldfromgoldwila/LiteLab.git
+   cd LiteLab
    ```
 
-2. **Development setup.** For development with hot reload:
+2. **Install dependencies**
    ```bash
    npm install
-   npm run dev
    ```
 
-3. **Production build.** For optimized production deployment:
+3. **Development server**
+   ```bash
+   npm run dev
+   ```
+   Access at `http://localhost:5173`
+
+4. **Production build**
    ```bash
    npm run build
    npm run preview
    ```
+   Access at `http://localhost:4173`
 
-4. **Access LiteLab** by visiting `http://localhost:5173` (dev) or `http://localhost:4173` (preview) in your browser.
+## 📖 Usage Guide
 
-## Using LiteLab
+### Loading Structures
 
-- **Structure loading and visualization**: LiteLab provides a complete litematic loading workflow with drag-and-drop support and real-time 3D rendering.
-- **Advanced filtering**: LiteLab's filtering functionality offers layer-based analysis, block-type highlighting, and comprehensive material statistics.
-- **Export and conversion**: LiteLab supports multiple export formats including .litematic files, JSON data, and Minecraft command generation.
-- **Edit mode**: Interactive block editing with visual feedback and comprehensive undo/redo support.
+#### Method 1: File Upload
+1. Click the file upload area or drag files directly
+2. Select `.litematic` or `.nbt` files
+3. Structure loads automatically with 3D visualization
 
-## Developer Guide
+#### Method 2: Command Input
+1. Paste `/setblock` or `/fill` commands in the Commands panel
+2. Click "Load Commands" to parse and visualize
+3. Supports multiple commands and complex structures
 
-- **System architecture**: Learn about the technical architecture and core components of LiteLab.
-- **File structure**: Understanding the modular organization of source code and assets.
-- **API integration**: How to extend LiteLab with custom functionality and third-party integrations.
-- **Performance optimization**: Best practices for handling large structures and optimizing rendering performance.
+### Navigation Controls
+- **Mouse**: Look around (click to enable pointer lock)
+- **WASD**: Move camera horizontally
+- **Space/Shift**: Move up/down
+- **Mouse Wheel**: Zoom in/out
+- **T/Escape**: Exit pointer lock mode
 
-## Technical Stack
+### Editing Features
+1. **Edit Mode**: Click "Edit Mode" to enable block interaction
+2. **Block Breaking**: Click blocks to remove them
+3. **Transformations**: Use rotate/flip buttons for structure modifications
+4. **Layer Filtering**: Adjust Y-level sliders to view specific layers
+5. **Material Highlighting**: Click material names to highlight blocks
+
+### Export Options
+1. **Litematic**: Download modified structure as `.litematic` file
+2. **NBT**: Export structure data as JSON NBT format
+3. **Commands**: Generate `/setblock` commands with custom origin coordinates
+4. **CSV**: Export material lists for spreadsheet analysis
+
+## 🏗️ Technical Architecture
 
 ### Core Technologies
 - **[Deepslate](https://github.com/misode/deepslate)** - NBT parsing and Minecraft data handling
-- **[gl-matrix](https://glmatrix.net/)** - 3D mathematics and transformations
+- **[gl-matrix](https://glmatrix.net/)** - 3D mathematics and matrix operations
 - **[Vite](https://vitejs.dev/)** - Modern build tooling and development server
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
+- **[Pako](https://github.com/nodeca/pako)** - Compression/decompression library
+- **[Prismarine NBT](https://github.com/PrismarineJS/prismarine-nbt)** - NBT format handling
 
-### File Format Support
-- **.litematic** files (Litematica mod format)
-- **Minecraft commands** (/setblock and /fill)
-- **JSON exports** for data interchange
-- **CSV exports** for material analysis
-
-## File Structure
-
+### File Structure
 ```
 LiteLab/
-├── index.html              # Main application entry point
 ├── src/
-│   ├── main.js            # Core application logic
-│   ├── viewer.js          # 3D rendering and camera controls
-│   ├── exporter.js        # File export functionality
-│   ├── litematic-utils.js # Litematic file parsing
-│   ├── edit-mode.js       # Interactive editing features
-│   └── ...
+│   ├── main.js              # Application entry point and state management
+│   ├── viewer.js            # 3D rendering and camera controls
+│   ├── litematic-utils.js   # Litematic file parsing and processing
+│   ├── command-parser.js    # Minecraft command parsing (/setblock, /fill)
+│   ├── command-loader.js    # Command input handling
+│   ├── exporter.js          # File export functionality
+│   ├── edit-mode.js         # Interactive editing features
+│   ├── transformations.js   # Structure transformation operations
+│   ├── block-hover.js       # Block highlighting and hover effects
+│   ├── compass.js           # Navigation compass overlay
+│   ├── nearest-block.js     # Nearest block detection
+│   ├── settings.js          # User preferences and configuration
+│   └── style.css            # Application styling
 ├── public/
 │   └── resource/
-│       ├── atlas.png      # Block texture atlas
-│       ├── assets.js      # Asset definitions
-│       └── opaque.js      # Block opacity data
-├── package.json           # Dependencies and scripts
-└── vite.config.js         # Build configuration
+│       ├── atlas.png        # Minecraft block texture atlas
+│       ├── assets.js        # Block asset definitions
+│       └── opaque.js        # Block opacity data
+├── index.html               # Main application HTML
+├── package.json             # Dependencies and build scripts
+└── vite.config.js           # Build configuration
 ```
 
-## License
+### Key Components
 
-This project uses the Apache 2.0 license. For more details, please refer to the [LICENSE](LICENSE) file.
+#### Structure Processing Pipeline
+1. **File Input** → NBT parsing → Litematic object creation
+2. **Command Input** → Regex parsing → Block placement simulation
+3. **3D Conversion** → Deepslate structure → WebGL rendering
 
-## Community Contributions
+#### Rendering System
+- **WebGL Context** - Hardware-accelerated 3D graphics
+- **Deepslate Renderer** - Minecraft-specific rendering engine
+- **Camera System** - First-person perspective controls
+- **Overlay System** - UI elements over 3D viewport
 
-We welcome community contributions. For contribution guidelines, please refer to [CONTRIBUTING](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md). We look forward to your contributions!
+#### State Management
+- **AppState** - Global application state container
+- **Transform History** - Undo/redo functionality
+- **Settings Persistence** - LocalStorage configuration
 
-## Security and Privacy
+## 🎯 Supported Formats
 
-If you identify potential security issues in this project, please report them through our issue tracker or contact the maintainers directly.
+### Input Formats
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| Litematic | `.litematic` | Litematica mod schematic format |
+| NBT | `.nbt` | JSON-formatted NBT structure data |
+| Commands | Text | `/setblock` and `/fill` commands |
 
-## Join the Community
+### Export Formats
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| Litematic | `.litematic` | Modified structure export |
+| NBT | `.nbt` | JSON NBT data export |
+| CSV | `.csv` | Material count spreadsheet |
+| Commands | `.txt` | Generated `/setblock` commands |
 
-We are committed to building an open and friendly developer community. All developers interested in Minecraft development and litematic manipulation are welcome to join us!
+### Command Support
+- **`/setblock x y z block [properties]`** - Single block placement
+- **`/fill x1 y1 z1 x2 y2 z2 block [properties]`** - Cuboid filling
+- **Multiple commands** - Batch processing support
+- **Block properties** - Full property parsing (e.g., `facing=north`)
 
-### Issue Reports & Feature Requests
+## ⚙️ Configuration
 
-To efficiently track and resolve issues while ensuring transparency and collaboration, we recommend participating through:
+### Camera Settings
+- **Mouse Sensitivity**: 0.1 - 5.0 (default: 1.0)
+- **Movement Speed**: 0.1 - 2.0 (default: 0.2)
+- **Invert Controls**: Toggle Y-axis inversion
 
-- **GitHub Issues**: Submit bug reports or feature requests
-- **Pull Requests**: Contribute code or documentation improvements
-- **Discussions**: Share ideas and get help from the community
+### Display Settings
+- **Show Grid**: Toggle coordinate grid overlay
+- **Block Hover Effect**: Enable/disable block highlighting
+- **Theme**: Light/Dark mode toggle
 
-## Acknowledgments
+### Performance Settings
+- **Chunk Size**: Rendering optimization (default: 8)
+- **WebGL Optimizations**: Automatic context management
 
-Thanks to all developers and community members who contributed to the LiteLab project. Special thanks:
+## 🔧 Development
 
-- **Deepslate framework** by Misode for NBT parsing and Minecraft data handling
-- **Minecraft community** for inspiration and feedback
-- **All contributors** who participated in testing and development
-- **Mojang Studios** for Minecraft textures and data (© Mojang Studios)
-- **Litematica mod** by maruohon for format specification
+### Build Scripts
+```bash
+npm run dev      # Development server with hot reload
+npm run build    # Production build
+npm run preview  # Preview production build
+```
+
+### Development Setup
+1. Install Node.js (v16+ recommended)
+2. Clone repository and install dependencies
+3. Run development server
+4. Access at `http://localhost:5173`
+
+### Contributing
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/name`)
+3. Commit changes (`git commit -m 'info'`)
+4. Push to branch (`git push origin feature/name`)
+5. Open Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT - see the [LICENSE](LICENSE) file for details.
+
+
+## 🐛 Issues & Support
+
+- **Bug Reports**: [GitHub Issues](https://github.com/Goldfromgoldwila/LiteLab/issues)
+
+---
